@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>1023214464565-52tr3dsv33p3rtqq77tqqfpbc251cjbd.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.1023214464565-52tr3dsv33p3rtqq77tqqfpbc251cjbd</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDRCy1xh2tiGByn9PABGf-oUU_gg1gSE5I</string>
+	<key>GCM_SENDER_ID</key>
+	<string>1023214464565</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.flutter</string>
+	<key>PROJECT_ID</key>
+	<string>emotion-todo</string>
+	<key>STORAGE_BUCKET</key>
+	<string>emotion-todo.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:1023214464565:ios:de7e6103a8a903ba5d4b7c</string>
+</dict>
+</plist>

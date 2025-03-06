@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1023214464565",
+    "project_id": "emotion-todo",
+    "storage_bucket": "emotion-todo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1023214464565:android:29481fae0eefa7ce5d4b7c",
+        "android_client_info": {
+          "package_name": "com.example.flutter_appp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1023214464565-buc9nhgdp860o61k4d8idaph3dj1g3g3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.flutter_appp",
+            "certificate_hash": "194f8dae3684723f28caa48aea50d5d3b880fbe4"
+          }
+        },
+        {
+          "client_id": "1023214464565-mr6sbq1mbvev64faq97oq7o5v9r374s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDXof4KnlUBx2Y5yiaZqIIf3SGZDZbZ6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1023214464565-mr6sbq1mbvev64faq97oq7o5v9r374s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1023214464565-52tr3dsv33p3rtqq77tqqfpbc251cjbd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.flutter"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
