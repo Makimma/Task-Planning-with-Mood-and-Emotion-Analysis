@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/foundation.dart'; // Проверка платформы
-import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -10,12 +8,10 @@ class AuthService {
   Future<User?> signInWithGoogle() async {
     try {
       if (kIsWeb) {
-        // Вход через Google для Web
         GoogleAuthProvider googleProvider = GoogleAuthProvider();
         UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
         return userCredential.user;
       } else {
-        // Вход через Google для Android и iOS
         final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
         final GoogleSignInAuthentication googleAuth = await googleUser!.authentication;
 
@@ -28,7 +24,33 @@ class AuthService {
         return userCredential.user;
       }
     } catch (e) {
-      print("Ошибка авторизации: $e");
+      print("Ошибка авторизации через Google: $e");
+      return null;
+    }
+  }
+
+  Future<User?> signInWithEmail(String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } catch (e) {
+      print("Ошибка входа: $e");
+      return null;
+    }
+  }
+
+  Future<User?> signUpWithEmail(String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } catch (e) {
+      print("Ошибка регистрации: $e");
       return null;
     }
   }

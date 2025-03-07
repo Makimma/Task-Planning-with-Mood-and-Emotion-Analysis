@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'auth_service.dart';
-import 'auth_screen.dart';
+import 'screens/auth_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final User user;
@@ -38,6 +38,10 @@ class HomeScreen extends StatelessWidget {
             SizedBox(height: 20),
             Text("Имя: ${user.displayName}", style: TextStyle(fontSize: 18)),
             Text("Email: ${user.email}", style: TextStyle(fontSize: 18)),
+            Text(
+              "Статус email: ${user.emailVerified ? "✅ Подтверждён" : "❌ Не подтверждён"}",
+              style: TextStyle(fontSize: 16, color: user.emailVerified ? Colors.green : Colors.red),
+            ),
           ],
         ),
       ),

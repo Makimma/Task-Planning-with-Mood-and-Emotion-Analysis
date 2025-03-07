@@ -1,10 +1,9 @@
-import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'auth_screen.dart';
-import 'home_screen.dart';
+import 'screens/auth_screen.dart';
+import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,9 +25,9 @@ void main() async {
   }
 
   runApp(
-      DevicePreview(
-          builder: (context) =>
-              MyApp())
+      // DevicePreview(
+      //     builder: (context) =>
+              MyApp()//)
   );
 }
 
@@ -42,7 +41,7 @@ class MyApp extends StatelessWidget {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return HomeScreen(user: snapshot.data!);
+            return MainScreen(user: snapshot.data!);
           } else {
             return AuthScreen();
           }
