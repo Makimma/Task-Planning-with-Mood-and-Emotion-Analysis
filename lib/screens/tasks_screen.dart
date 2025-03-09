@@ -39,7 +39,6 @@ class _TasksScreenState extends State<TasksScreen> {
             };
           }).toList();
 
-
           tasks.sort((a, b) {
             Timestamp timestampA = a['deadline'];
             Timestamp timestampB = b['deadline'];
@@ -51,21 +50,38 @@ class _TasksScreenState extends State<TasksScreen> {
             itemBuilder: (context, index) {
               final task = tasks[index];
 
-              return Card(
-                child: ListTile(
-                  title: Text(task['title'], style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Категория: ${task['category']}"),
-                      Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
-                      Text("Приоритет: ${_getPriorityText(task['priority'])}"),
-                      Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () => _showEditTaskDialog(context, task),
+              return Dismissible(
+                key: Key(task['id']),
+                direction: DismissDirection.startToEnd,
+                background: Container(
+                  color: Colors.green,
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Icon(Icons.check, color: Colors.white, size: 30),
+                ),
+                onDismissed: (direction) {
+                  _completeTask(task['id']);
+                },
+                child: Card(
+                  child: ListTile(
+                    title: Text(task['title'],
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Категория: ${task['category']}"),
+                        Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
+                        Text(
+                            "Приоритет: ${_getPriorityText(task['priority'])}"),
+                        Text(
+                            "Эмоциональная нагрузка: ${task['emotionalLoad']}"),
+                      ],
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () =>
+                          _showEditTaskDialog(context, task), // Выполнить задачу
+                    ),
                   ),
                 ),
               );
@@ -133,13 +149,23 @@ class _TasksScreenState extends State<TasksScreen> {
                       onChanged: (value) => title = value,
                     ),
                     TextFormField(
-                      decoration: InputDecoration(labelText: "Комментарий (дополнительно)"),
+                      decoration: InputDecoration(
+                          labelText: "Комментарий (дополнительно)"),
                       maxLength: 512,
                       onChanged: (value) => comment = value,
                     ),
                     DropdownButtonFormField<String>(
                       value: category,
-                      items: ["Работа", "Учёба", "Финансы", "Здоровье и спорт", "Развитие и хобби", "Личное", "Домашние дела", "Путешествие и досуг"].map((String value) {
+                      items: [
+                        "Работа",
+                        "Учёба",
+                        "Финансы",
+                        "Здоровье и спорт",
+                        "Развитие и хобби",
+                        "Личное",
+                        "Домашние дела",
+                        "Путешествие и досуг"
+                      ].map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(value),
@@ -165,7 +191,8 @@ class _TasksScreenState extends State<TasksScreen> {
                       max: 5,
                       divisions: 4,
                       label: emotionalLoad.toString(),
-                      onChanged: (value) => setState(() => emotionalLoad = value.toInt()),
+                      onChanged: (value) =>
+                          setState(() => emotionalLoad = value.toInt()),
                     ),
                     ElevatedButton(
                       onPressed: () async {
@@ -208,7 +235,8 @@ class _TasksScreenState extends State<TasksScreen> {
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  _addTask(title, comment, category, priority, emotionalLoad, deadline);
+                  _addTask(title, comment, category, priority, emotionalLoad,
+                      deadline);
                   Navigator.pop(context);
                 }
               },
@@ -220,7 +248,8 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _addTask(String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline) {
+  void _addTask(String title, String comment, String category, String priority,
+      int emotionalLoad, DateTime deadline) {
     if (title.isEmpty) return;
 
     FirebaseFirestore.instance
@@ -276,13 +305,15 @@ class _TasksScreenState extends State<TasksScreen> {
                     ),
                     TextFormField(
                       initialValue: comment,
-                      decoration: InputDecoration(labelText: "Комментарий (необязательно)"),
+                      decoration: InputDecoration(
+                          labelText: "Комментарий (необязательно)"),
                       maxLength: 512,
                       onChanged: (value) => comment = value,
                     ),
                     DropdownButtonFormField<String>(
                       value: category,
-                      items: ["Работа", "Учёба", "Личное", "Дом"].map((String value) {
+                      items: ["Работа", "Учёба", "Личное", "Дом"]
+                          .map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(value),
@@ -308,7 +339,8 @@ class _TasksScreenState extends State<TasksScreen> {
                       max: 5,
                       divisions: 4,
                       label: emotionalLoad.toString(),
-                      onChanged: (value) => setState(() => emotionalLoad = value.toInt()),
+                      onChanged: (value) =>
+                          setState(() => emotionalLoad = value.toInt()),
                     ),
                     ElevatedButton(
                       onPressed: () async {
@@ -351,14 +383,8 @@ class _TasksScreenState extends State<TasksScreen> {
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  _updateTask(task['id'],
-                      title,
-                      comment,
-                      category,
-                      priority,
-                      emotionalLoad,
-                      deadline,
-                      context);
+                  _updateTask(task['id'], title, comment, category, priority,
+                      emotionalLoad, deadline, context);
                 }
               },
               child: Text("Save"),
@@ -400,5 +426,18 @@ class _TasksScreenState extends State<TasksScreen> {
     });
   }
 
-
+  void _completeTask(String taskId) {
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .collection('tasks')
+        .doc(taskId)
+        .update({
+      'status': 'completed',
+    }).then((_) {
+      log("✅ Задача выполнена: $taskId");
+    }).catchError((error) {
+      log("❌ Ошибка выполнения задачи: $error");
+    });
+  }
 }
