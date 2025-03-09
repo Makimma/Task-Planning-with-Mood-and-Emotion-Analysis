@@ -258,8 +258,7 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _addTask(String title, String comment, String category, String priority,
-      int emotionalLoad, DateTime deadline) {
+  void _addTask(String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline) {
     if (title.isEmpty) return;
 
     FirebaseFirestore.instance
@@ -379,7 +378,7 @@ class _TasksScreenState extends State<TasksScreen> {
                       emotionalLoad, deadline, context);
                 }
               },
-              child: Text("Save"),
+              child: Text("Сохранить"),
             ),
           ],
         );
@@ -387,15 +386,7 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _updateTask(
-      String taskId,
-      String title,
-      String comment,
-      String category,
-      String priority,
-      int emotionalLoad,
-      DateTime deadline,
-      BuildContext context) {
+  void _updateTask(String taskId, String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline, BuildContext context) {
     FirebaseFirestore.instance
         .collection('users')
         .doc(user!.uid)
@@ -408,14 +399,10 @@ class _TasksScreenState extends State<TasksScreen> {
       'priority': priority,
       'emotionalLoad': emotionalLoad,
       'deadline': Timestamp.fromDate(deadline),
-    }).then((_) {
-      log("✅ Task updated successfully!");
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-    }).catchError((error) {
-      log("❌ Firestore update error: $error");
     });
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
   }
 
   void _completeTask(String taskId) {
