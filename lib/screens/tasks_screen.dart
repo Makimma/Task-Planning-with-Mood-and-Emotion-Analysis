@@ -52,7 +52,7 @@ class _TasksScreenState extends State<TasksScreen> {
 
               return Dismissible(
                 key: Key(task['id']),
-                direction: DismissDirection.endToStart, // ✅ Свайп справа налево
+                direction: DismissDirection.endToStart,
                 background: Container(
                   color: Colors.red,
                   alignment: Alignment.centerRight,
@@ -63,30 +63,50 @@ class _TasksScreenState extends State<TasksScreen> {
                   return await _showDeleteConfirmation(context, task['id']);
                 },
                 child: Card(
-                  child: ListTile(
-                    title: Text(task['title'], style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Категория: ${task['category']}"),
-                        Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
-                        Text("Приоритет: ${_getPriorityText(task['priority'])}"),
-                        Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.edit, color: Colors.blue), // 🖊️ Теперь редактирование слева
-                          onPressed: () => _showEditTaskDialog(context, task),
+                  elevation: 4, // Тень для красоты
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  child: Row(
+                    children: [
+                      // ✅ Цветная полоса слева
+                      Container(
+                        width: 8,
+                        height: 80, // Высота карточки
+                        decoration: BoxDecoration(
+                          color: _getTaskColor(task['emotionalLoad']),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(8),
+                            bottomLeft: Radius.circular(8),
+                          ),
                         ),
-                        IconButton(
-                          icon: Icon(Icons.check_circle, color: Colors.green), // ✅ А выполнение справа
-                          onPressed: () => _completeTask(task['id']),
+                      ),
+                      Expanded(
+                        child: ListTile(
+                          title: Text(task['title'], style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Категория: ${task['category']}"),
+                              Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
+                              Text("Приоритет: ${_getPriorityText(task['priority'])}"),
+                              Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
+                            ],
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _showEditTaskDialog(context, task),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.check_circle, color: Colors.green),
+                                onPressed: () => _completeTask(task['id']),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -484,6 +504,16 @@ class _TasksScreenState extends State<TasksScreen> {
     }).catchError((error) {
       log("❌ Ошибка удаления: $error");
     });
+  }
+
+  Color _getTaskColor(int emotionalLoad) {
+    if (emotionalLoad >= 4) {
+      return Colors.red.shade300; // 🔴 Высокий приоритет или высокая нагрузка
+    } else if (emotionalLoad == 3) {
+      return Colors.yellow.shade300; // 🟡 Средний приоритет или умеренная нагрузка
+    } else {
+      return Colors.green.shade300; // 🟢 Низкий приоритет или низкая нагрузка
+    }
   }
 
 }
