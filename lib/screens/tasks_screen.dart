@@ -77,10 +77,10 @@ class _TasksScreenState extends State<TasksScreen> {
             if (selectedSortOption == "Дедлайн") {
               return (a['deadline'] as Timestamp).compareTo(b['deadline'] as Timestamp);
             } else if (selectedSortOption == "Приоритет") {
-              Map<String, int> priorityOrder = {"high": 1, "medium": 2, "low": 3};
+              Map<String, int> priorityOrder = {"high": 3, "medium": 2, "low": 1};
               return priorityOrder[a['priority']]!.compareTo(priorityOrder[b['priority']]!);
             } else if (selectedSortOption == "Эмоциональная нагрузка") {
-              return b['emotionalLoad'].compareTo(a['emotionalLoad']);
+              return a['emotionalLoad'].compareTo(b['emotionalLoad']);
             }
             return 0;
           });
