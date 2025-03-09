@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -31,8 +33,12 @@ class _TasksScreenState extends State<TasksScreen> {
           }
 
           List<Map<String, dynamic>> tasks = snapshot.data!.docs.map((doc) {
-            return doc.data() as Map<String, dynamic>;
+            return {
+              'id': doc.id,
+              ...doc.data() as Map<String, dynamic>,
+            };
           }).toList();
+
 
           tasks.sort((a, b) {
             Timestamp timestampA = a['deadline'];
@@ -56,6 +62,10 @@ class _TasksScreenState extends State<TasksScreen> {
                       Text("Приоритет: ${_getPriorityText(task['priority'])}"),
                       Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
                     ],
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () => _showEditTaskDialog(context, task),
                   ),
                 ),
               );
@@ -123,7 +133,7 @@ class _TasksScreenState extends State<TasksScreen> {
                       onChanged: (value) => title = value,
                     ),
                     TextFormField(
-                      decoration: InputDecoration(labelText: "Комментарий (опционально)"),
+                      decoration: InputDecoration(labelText: "Комментарий (дополнительно)"),
                       maxLength: 512,
                       onChanged: (value) => comment = value,
                     ),
@@ -228,4 +238,167 @@ class _TasksScreenState extends State<TasksScreen> {
       'createdAt': Timestamp.now(),
     });
   }
+
+  void _showEditTaskDialog(BuildContext context, Map<String, dynamic> task) {
+    final _formKey = GlobalKey<FormState>();
+    String title = task['title'];
+    String comment = task['comment'] ?? "";
+    String category = task['category'];
+    String priority = task['priority'];
+    int emotionalLoad = task['emotionalLoad'];
+    DateTime deadline = (task['deadline'] as Timestamp).toDate();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Редактировать задачу"),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      initialValue: title,
+                      decoration: InputDecoration(labelText: "Название"),
+                      maxLength: 50,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Название обязательно";
+                        } else if (value.length > 50) {
+                          return "Максимум 50 символов";
+                        }
+                        return null;
+                      },
+                      onChanged: (value) => title = value,
+                    ),
+                    TextFormField(
+                      initialValue: comment,
+                      decoration: InputDecoration(labelText: "Комментарий (необязательно)"),
+                      maxLength: 512,
+                      onChanged: (value) => comment = value,
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: category,
+                      items: ["Работа", "Учёба", "Личное", "Дом"].map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (value) => setState(() => category = value!),
+                      decoration: InputDecoration(labelText: "Категория"),
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: priority,
+                      items: ["high", "medium", "low"].map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(_getPriorityText(value)),
+                        );
+                      }).toList(),
+                      onChanged: (value) => setState(() => priority = value!),
+                      decoration: InputDecoration(labelText: "Приоритет"),
+                    ),
+                    Slider(
+                      value: emotionalLoad.toDouble(),
+                      min: 1,
+                      max: 5,
+                      divisions: 4,
+                      label: emotionalLoad.toString(),
+                      onChanged: (value) => setState(() => emotionalLoad = value.toInt()),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: deadline,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          TimeOfDay? time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          );
+                          if (time != null) {
+                            setState(() {
+                              deadline = DateTime(
+                                picked.year,
+                                picked.month,
+                                picked.day,
+                                time.hour,
+                                time.minute,
+                              );
+                            });
+                          }
+                        }
+                      },
+                      child: Text("Выбрать дедлайн"),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _updateTask(task['id'],
+                      title,
+                      comment,
+                      category,
+                      priority,
+                      emotionalLoad,
+                      deadline,
+                      context);
+                }
+              },
+              child: Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _updateTask(
+      String taskId,
+      String title,
+      String comment,
+      String category,
+      String priority,
+      int emotionalLoad,
+      DateTime deadline,
+      BuildContext context) {
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .collection('tasks')
+        .doc(taskId)
+        .update({
+      'title': title,
+      'comment': comment,
+      'category': category,
+      'priority': priority,
+      'emotionalLoad': emotionalLoad,
+      'deadline': Timestamp.fromDate(deadline),
+    }).then((_) {
+      log("✅ Task updated successfully!");
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+    }).catchError((error) {
+      log("❌ Firestore update error: $error");
+    });
+  }
+
+
 }
