@@ -80,14 +80,18 @@ class _TasksScreenState extends State<TasksScreen> {
               Map<String, int> priorityOrder = {"high": 1, "medium": 2, "low": 3};
               return priorityOrder[a['priority']]!.compareTo(priorityOrder[b['priority']]!);
             } else if (selectedSortOption == "Эмоциональная нагрузка") {
-              return b['emotionalLoad'].compareTo(a['emotionalLoad']); // ✅ Сортировка по убыванию
+              return b['emotionalLoad'].compareTo(a['emotionalLoad']);
             }
             return 0;
           });
 
           return ListView.builder(
-            itemCount: tasks.length,
+            physics: BouncingScrollPhysics(),
+            itemCount: tasks.length + 1,
             itemBuilder: (context, index) {
+              if (index == tasks.length) {
+                return SizedBox(height: 100);
+              }
               final task = tasks[index];
 
               return Dismissible(
