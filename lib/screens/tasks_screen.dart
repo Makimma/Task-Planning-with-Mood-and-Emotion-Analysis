@@ -52,35 +52,40 @@ class _TasksScreenState extends State<TasksScreen> {
 
               return Dismissible(
                 key: Key(task['id']),
-                direction: DismissDirection.startToEnd,
+                direction: DismissDirection.endToStart, // ✅ Свайп справа налево
                 background: Container(
-                  color: Colors.green,
-                  alignment: Alignment.centerLeft,
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
                   padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(Icons.check, color: Colors.white, size: 30),
+                  child: Icon(Icons.delete, color: Colors.white, size: 30),
                 ),
-                onDismissed: (direction) {
-                  _completeTask(task['id']);
+                confirmDismiss: (direction) async {
+                  return await _showDeleteConfirmation(context, task['id']);
                 },
                 child: Card(
                   child: ListTile(
-                    title: Text(task['title'],
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(task['title'], style: TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text("Категория: ${task['category']}"),
                         Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
-                        Text(
-                            "Приоритет: ${_getPriorityText(task['priority'])}"),
-                        Text(
-                            "Эмоциональная нагрузка: ${task['emotionalLoad']}"),
+                        Text("Приоритет: ${_getPriorityText(task['priority'])}"),
+                        Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
                       ],
                     ),
-                    trailing: IconButton(
-                      icon: Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () =>
-                          _showEditTaskDialog(context, task), // Выполнить задачу
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit, color: Colors.blue), // 🖊️ Теперь редактирование слева
+                          onPressed: () => _showEditTaskDialog(context, task),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.check_circle, color: Colors.green), // ✅ А выполнение справа
+                          onPressed: () => _completeTask(task['id']),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -440,4 +445,45 @@ class _TasksScreenState extends State<TasksScreen> {
       log("❌ Ошибка выполнения задачи: $error");
     });
   }
+
+  Future<bool?> _showDeleteConfirmation(BuildContext context, String taskId) async {
+    return await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Удалить задачу?"),
+          content: Text("Вы уверены, что хотите удалить эту задачу? Действие нельзя отменить."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false), // ❌ Отмена
+              child: Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _deleteTask(taskId);
+                Navigator.pop(context, true); // ✅ Подтверждение
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text("Удалить", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteTask(String taskId) {
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .collection('tasks')
+        .doc(taskId)
+        .delete()
+        .then((_) {
+      log("✅ Задача удалена: $taskId");
+    }).catchError((error) {
+      log("❌ Ошибка удаления: $error");
+    });
+  }
+
 }
