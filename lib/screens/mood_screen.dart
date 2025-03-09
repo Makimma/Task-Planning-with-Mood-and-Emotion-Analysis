@@ -12,10 +12,10 @@ class _MoodScreenState extends State<MoodScreen> {
   String note = "";
 
   final List<Map<String, String>> moodOptions = [
-    {"emoji": "😊", "type": "joy"},
-    {"emoji": "😢", "type": "sadness"},
-    {"emoji": "😌", "type": "calm"},
-    {"emoji": "😫", "type": "fatigue"},
+    {"emoji": "😊", "type": "Радость"},
+    {"emoji": "😢", "type": "Грусть"},
+    {"emoji": "😌", "type": "Спокойствие"},
+    {"emoji": "😫", "type": "Усталость"},
   ];
 
   void _saveMood() async {
@@ -92,20 +92,23 @@ class _MoodScreenState extends State<MoodScreen> {
             Text("Выберите ваше настроение:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly, //Равномерное распределение
               children: moodOptions.map((mood) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedMood = mood["type"]!;
-                    });
-                  },
-                  child: Column(
-                    children: [
-                      Text(mood["emoji"]!, style: TextStyle(fontSize: 30)),
-                      Text(mood["type"]!, style: TextStyle(fontSize: 14)),
-                      if (selectedMood == mood["type"]) Icon(Icons.check, color: Colors.green)
-                    ],
+                return Expanded( // Равномерное распределение по ширине
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedMood = mood["type"]!;
+                      });
+                    },
+                    child: Column(
+                      children: [
+                        Text(mood["emoji"]!, style: TextStyle(fontSize: 30)),
+                        SizedBox(height: 5),
+                        Text(mood["type"]!, style: TextStyle(fontSize: 14)),
+                        if (selectedMood == mood["type"]) Icon(Icons.check, color: Colors.green),
+                      ],
+                    ),
                   ),
                 );
               }).toList(),
