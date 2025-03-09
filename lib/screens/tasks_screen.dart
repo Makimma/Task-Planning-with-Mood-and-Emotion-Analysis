@@ -11,8 +11,8 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
+  String selectedSortOption = "Дедлайн";
   final User? user = FirebaseAuth.instance.currentUser;
-
   final List<String> taskCategories = [
     "Работа",
     "Учёба",
@@ -27,7 +27,29 @@ class _TasksScreenState extends State<TasksScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Ваши задачи")),
+      appBar: AppBar(
+        title: Text("Задачи"),
+        actions: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: DropdownButton<String>(
+              value: selectedSortOption,
+              items: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"]
+                  .map((String option) {
+                return DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(option),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedSortOption = value!;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -52,9 +74,15 @@ class _TasksScreenState extends State<TasksScreen> {
           }).toList();
 
           tasks.sort((a, b) {
-            Timestamp timestampA = a['deadline'];
-            Timestamp timestampB = b['deadline'];
-            return timestampA.compareTo(timestampB);
+            if (selectedSortOption == "Дедлайн") {
+              return (a['deadline'] as Timestamp).compareTo(b['deadline'] as Timestamp);
+            } else if (selectedSortOption == "Приоритет") {
+              Map<String, int> priorityOrder = {"high": 1, "medium": 2, "low": 3};
+              return priorityOrder[a['priority']]!.compareTo(priorityOrder[b['priority']]!);
+            } else if (selectedSortOption == "Эмоциональная нагрузка") {
+              return b['emotionalLoad'].compareTo(a['emotionalLoad']); // ✅ Сортировка по убыванию
+            }
+            return 0;
           });
 
           return ListView.builder(
