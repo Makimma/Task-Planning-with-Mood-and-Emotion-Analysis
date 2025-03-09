@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -222,32 +223,14 @@ class _TasksScreenState extends State<TasksScreen> {
                           setState(() => emotionalLoad = value.toInt()),
                     ),
                     ElevatedButton(
-                      onPressed: () async {
-                        DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: deadline,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
-                          TimeOfDay? time = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (time != null) {
-                            setState(() {
-                              deadline = DateTime(
-                                picked.year,
-                                picked.month,
-                                picked.day,
-                                time.hour,
-                                time.minute,
-                              );
-                            });
-                          }
-                        }
+                      onPressed: () {
+                        _showDateTimePicker(context, deadline, (DateTime newDate) {
+                          setState(() {
+                            deadline = newDate;
+                          });
+                        });
                       },
-                      child: Text("Выбрать дедлайн"),
+                      child: Text("Выбрать дату и время"),
                     ),
                   ],
                 ),
@@ -370,32 +353,14 @@ class _TasksScreenState extends State<TasksScreen> {
                           setState(() => emotionalLoad = value.toInt()),
                     ),
                     ElevatedButton(
-                      onPressed: () async {
-                        DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: deadline,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
-                          TimeOfDay? time = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (time != null) {
-                            setState(() {
-                              deadline = DateTime(
-                                picked.year,
-                                picked.month,
-                                picked.day,
-                                time.hour,
-                                time.minute,
-                              );
-                            });
-                          }
-                        }
+                      onPressed: () {
+                        _showDateTimePicker(context, deadline, (DateTime newDate) {
+                          setState(() {
+                            deadline = newDate;
+                          });
+                        });
                       },
-                      child: Text("Выбрать дедлайн"),
+                      child: Text("Выбрать дату и время"),
                     ),
                   ],
                 ),
@@ -516,6 +481,49 @@ class _TasksScreenState extends State<TasksScreen> {
     } else {
       return Colors.green.shade300; // 🟢 Низкий приоритет или низкая нагрузка
     }
+  }
+
+  void _showDateTimePicker(BuildContext context, DateTime initialDate, Function(DateTime) onDateTimeSelected) {
+    DateTime now = DateTime.now();
+    DateTime minDateTime = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+    DateTime selectedDateTime = initialDate.isBefore(minDateTime) ? minDateTime : initialDate;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          height: 350,
+          padding: EdgeInsets.only(bottom: 20),
+          child: Column(
+            children: [
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.dateAndTime,
+                  initialDateTime: selectedDateTime,
+                  minimumDate: minDateTime,
+                  maximumDate: DateTime(2100),
+                  use24hFormat: true,
+                  onDateTimeChanged: (DateTime newDateTime) {
+                    selectedDateTime = newDateTime;
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: ElevatedButton(
+                  onPressed: () {
+                    onDateTimeSelected(selectedDateTime);
+                    Navigator.pop(context);
+                  },
+                  child: Text("Готово"),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
 }
