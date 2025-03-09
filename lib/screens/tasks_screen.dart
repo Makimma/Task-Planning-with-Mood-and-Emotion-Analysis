@@ -12,6 +12,17 @@ class TasksScreen extends StatefulWidget {
 class _TasksScreenState extends State<TasksScreen> {
   final User? user = FirebaseAuth.instance.currentUser;
 
+  final List<String> taskCategories = [
+    "Работа",
+    "Учёба",
+    "Финансы",
+    "Здоровье и спорт",
+    "Развитие и хобби",
+    "Личное",
+    "Домашние дела",
+    "Путешествия и досуг"
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -181,16 +192,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     ),
                     DropdownButtonFormField<String>(
                       value: category,
-                      items: [
-                        "Работа",
-                        "Учёба",
-                        "Финансы",
-                        "Здоровье и спорт",
-                        "Развитие и хобби",
-                        "Личное",
-                        "Домашние дела",
-                        "Путешествие и досуг"
-                      ].map((String value) {
+                      items: taskCategories.map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(value),
@@ -337,8 +339,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     ),
                     DropdownButtonFormField<String>(
                       value: category,
-                      items: ["Работа", "Учёба", "Личное", "Дом"]
-                          .map((String value) {
+                      items: taskCategories.map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(value),
@@ -347,6 +348,7 @@ class _TasksScreenState extends State<TasksScreen> {
                       onChanged: (value) => setState(() => category = value!),
                       decoration: InputDecoration(labelText: "Категория"),
                     ),
+
                     DropdownButtonFormField<String>(
                       value: priority,
                       items: ["high", "medium", "low"].map((String value) {
