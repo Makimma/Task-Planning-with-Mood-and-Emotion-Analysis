@@ -26,141 +26,51 @@ class _TasksScreenState extends State<TasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Задачи"),
-        actions: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButton<String>(
-              value: selectedSortOption,
-              items: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"]
-                  .map((String option) {
-                return DropdownMenuItem<String>(
-                  value: option,
-                  child: Text(option),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedSortOption = value!;
-                });
-              },
-            ),
+    return DefaultTabController(
+      length: 2, // ✅ Две вкладки: "Активные" и "Выполненные"
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text("Задачи"),
+          bottom: TabBar(
+            labelColor: Colors.black, // Цвет активной вкладки
+            unselectedLabelColor: Colors.black, // Цвет неактивной вкладки
+            indicatorColor: Colors.black, // Цвет подчеркивания вкладки
+            tabs: [
+              Tab(text: "Активные"),
+              Tab(text: "Выполненные"),
+            ],
           ),
-        ],
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(user!.uid)
-            .collection('tasks')
-            .where('status', isEqualTo: 'active')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text("Нет активных задач"));
-          }
-
-          List<Map<String, dynamic>> tasks = snapshot.data!.docs.map((doc) {
-            return {
-              'id': doc.id,
-              ...doc.data() as Map<String, dynamic>,
-            };
-          }).toList();
-
-          tasks.sort((a, b) {
-            if (selectedSortOption == "Дедлайн") {
-              return (a['deadline'] as Timestamp).compareTo(b['deadline'] as Timestamp);
-            } else if (selectedSortOption == "Приоритет") {
-              Map<String, int> priorityOrder = {"high": 3, "medium": 2, "low": 1};
-              return priorityOrder[a['priority']]!.compareTo(priorityOrder[b['priority']]!);
-            } else if (selectedSortOption == "Эмоциональная нагрузка") {
-              return a['emotionalLoad'].compareTo(b['emotionalLoad']);
-            }
-            return 0;
-          });
-
-          return ListView.builder(
-            physics: BouncingScrollPhysics(),
-            itemCount: tasks.length + 1,
-            itemBuilder: (context, index) {
-              if (index == tasks.length) {
-                return SizedBox(height: 100);
-              }
-              final task = tasks[index];
-
-              return Dismissible(
-                key: Key(task['id']),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(Icons.delete, color: Colors.white, size: 30),
-                ),
-                confirmDismiss: (direction) async {
-                  return await _showDeleteConfirmation(context, task['id']);
+          actions: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: DropdownButton<String>(
+                value: selectedSortOption,
+                items: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"]
+                    .map((String option) {
+                  return DropdownMenuItem<String>(
+                    value: option,
+                    child: Text(option),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedSortOption = value!;
+                  });
                 },
-                child: Card(
-                  elevation: 4, // Тень для красоты
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    children: [
-                      // ✅ Цветная полоса слева
-                      Container(
-                        width: 8,
-                        height: 80, // Высота карточки
-                        decoration: BoxDecoration(
-                          color: _getTaskColor(task['emotionalLoad']),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(8),
-                            bottomLeft: Radius.circular(8),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: ListTile(
-                          title: Text(task['title'], style: TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("Категория: ${task['category']}"),
-                              Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
-                              Text("Приоритет: ${_getPriorityText(task['priority'])}"),
-                              Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _showEditTaskDialog(context, task),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.check_circle, color: Colors.green),
-                                onPressed: () => _completeTask(task['id']),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddTaskDialog(context),
-        child: Icon(Icons.add),
+              ),
+            ),
+          ],
+        ),
+        body: TabBarView(
+          children: [
+            _buildTaskList("active"),
+            _buildTaskList("completed"),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showAddTaskDialog(context),
+          child: Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -256,7 +166,8 @@ class _TasksScreenState extends State<TasksScreen> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        _showDateTimePicker(context, deadline, (DateTime newDate) {
+                        _showDateTimePicker(context, deadline,
+                            (DateTime newDate) {
                           setState(() {
                             deadline = newDate;
                           });
@@ -290,7 +201,8 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _addTask(String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline) {
+  void _addTask(String title, String comment, String category, String priority,
+      int emotionalLoad, DateTime deadline) {
     if (title.isEmpty) return;
 
     FirebaseFirestore.instance
@@ -362,7 +274,6 @@ class _TasksScreenState extends State<TasksScreen> {
                       onChanged: (value) => setState(() => category = value!),
                       decoration: InputDecoration(labelText: "Категория"),
                     ),
-
                     DropdownButtonFormField<String>(
                       value: priority,
                       items: ["high", "medium", "low"].map((String value) {
@@ -385,7 +296,8 @@ class _TasksScreenState extends State<TasksScreen> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        _showDateTimePicker(context, deadline, (DateTime newDate) {
+                        _showDateTimePicker(context, deadline,
+                            (DateTime newDate) {
                           setState(() {
                             deadline = newDate;
                           });
@@ -418,7 +330,15 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _updateTask(String taskId, String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline, BuildContext context) {
+  void _updateTask(
+      String taskId,
+      String title,
+      String comment,
+      String category,
+      String priority,
+      int emotionalLoad,
+      DateTime deadline,
+      BuildContext context) {
     FirebaseFirestore.instance
         .collection('users')
         .doc(user!.uid)
@@ -452,13 +372,15 @@ class _TasksScreenState extends State<TasksScreen> {
     });
   }
 
-  Future<bool?> _showDeleteConfirmation(BuildContext context, String taskId) async {
+  Future<bool?> _showDeleteConfirmation(
+      BuildContext context, String taskId) async {
     return await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text("Удалить задачу?"),
-          content: Text("Вы уверены, что хотите удалить эту задачу? Действие нельзя отменить."),
+          content: Text(
+              "Вы уверены, что хотите удалить эту задачу? Действие нельзя отменить."),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false), // ❌ Отмена
@@ -494,18 +416,21 @@ class _TasksScreenState extends State<TasksScreen> {
 
   Color _getTaskColor(int emotionalLoad) {
     if (emotionalLoad >= 4) {
-      return Colors.red.shade300; // 🔴 Высокий приоритет или высокая нагрузка
+      return Colors.red.shade300;
     } else if (emotionalLoad == 3) {
-      return Colors.yellow.shade300; // 🟡 Средний приоритет или умеренная нагрузка
+      return Colors
+          .yellow.shade300;
     } else {
-      return Colors.green.shade300; // 🟢 Низкий приоритет или низкая нагрузка
+      return Colors.green.shade300;
     }
   }
 
   void _showDateTimePicker(BuildContext context, DateTime initialDate, Function(DateTime) onDateTimeSelected) {
     DateTime now = DateTime.now();
-    DateTime minDateTime = DateTime(now.year, now.month, now.day, now.hour, now.minute);
-    DateTime selectedDateTime = initialDate.isBefore(minDateTime) ? minDateTime : initialDate;
+    DateTime minDateTime =
+        DateTime(now.year, now.month, now.day, now.hour, now.minute);
+    DateTime selectedDateTime =
+        initialDate.isBefore(minDateTime) ? minDateTime : initialDate;
 
     showModalBottomSheet(
       context: context,
@@ -540,6 +465,117 @@ class _TasksScreenState extends State<TasksScreen> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTaskList(String status) {
+    return StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user!.uid)
+              .collection('tasks')
+              .where('status', isEqualTo: status)
+              .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(child: Text("Отсутствуют задачи"));
+        }
+
+        List<Map<String, dynamic>> tasks = snapshot.data!.docs.map((doc) {
+          return {
+            'id': doc.id,
+            ...doc.data() as Map<String, dynamic>,
+          };
+        }).toList();
+
+        tasks.sort((a, b) {
+          if (selectedSortOption == "Дедлайн") {
+            return (a['deadline'] as Timestamp).compareTo(b['deadline'] as Timestamp);
+          } else if (selectedSortOption == "Приоритет") {
+            Map<String, int> priorityOrder = {"high": 3, "medium": 2, "low": 1};
+            return priorityOrder[a['priority']]!.compareTo(priorityOrder[b['priority']]!);
+          } else if (selectedSortOption == "Эмоциональная нагрузка") {
+            return a['emotionalLoad'].compareTo(b['emotionalLoad']);
+          }
+          return 0;
+        });
+
+        return ListView.builder(
+          physics: BouncingScrollPhysics(),
+          itemCount: tasks.length + 1,
+          itemBuilder: (context, index) {
+            if (index == tasks.length) {
+              return SizedBox(height: 100);
+            }
+            final task = tasks[index];
+
+            return Dismissible(
+              key: Key(task['id']),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                color: Colors.red,
+                alignment: Alignment.centerRight,
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Icon(Icons.delete, color: Colors.white, size: 30),
+              ),
+              confirmDismiss: (direction) async {
+                return await _showDeleteConfirmation(context, task['id']);
+              },
+              child: Card(
+                elevation: 4, // Тень для красоты
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: Row(
+                  children: [
+                    // ✅ Цветная полоса слева
+                    Container(
+                      width: 8,
+                      height: 80, // Высота карточки
+                      decoration: BoxDecoration(
+                        color: _getTaskColor(task['emotionalLoad']),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          bottomLeft: Radius.circular(8),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: ListTile(
+                        title: Text(task['title'], style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Категория: ${task['category']}"),
+                            Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
+                            Text("Приоритет: ${_getPriorityText(task['priority'])}"),
+                            Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _showEditTaskDialog(context, task),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.check_circle, color: Colors.green),
+                              onPressed: () => _completeTask(task['id']),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
