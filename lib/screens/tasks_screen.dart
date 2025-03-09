@@ -418,14 +418,14 @@ class _TasksScreenState extends State<TasksScreen> {
     if (emotionalLoad >= 4) {
       return Colors.red.shade300;
     } else if (emotionalLoad == 3) {
-      return Colors
-          .yellow.shade300;
+      return Colors.yellow.shade300;
     } else {
       return Colors.green.shade300;
     }
   }
 
-  void _showDateTimePicker(BuildContext context, DateTime initialDate, Function(DateTime) onDateTimeSelected) {
+  void _showDateTimePicker(BuildContext context, DateTime initialDate,
+      Function(DateTime) onDateTimeSelected) {
     DateTime now = DateTime.now();
     DateTime minDateTime =
         DateTime(now.year, now.month, now.day, now.hour, now.minute);
@@ -470,14 +470,19 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
+  bool _isOverdue(Timestamp deadline) {
+    DateTime now = DateTime.now();
+    return deadline.toDate().isBefore(now);
+  }
+
   Widget _buildTaskList(String status) {
     return StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user!.uid)
-              .collection('tasks')
-              .where('status', isEqualTo: status)
-              .snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .collection('tasks')
+          .where('status', isEqualTo: status)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -496,10 +501,12 @@ class _TasksScreenState extends State<TasksScreen> {
 
         tasks.sort((a, b) {
           if (selectedSortOption == "Дедлайн") {
-            return (a['deadline'] as Timestamp).compareTo(b['deadline'] as Timestamp);
+            return (a['deadline'] as Timestamp)
+                .compareTo(b['deadline'] as Timestamp);
           } else if (selectedSortOption == "Приоритет") {
             Map<String, int> priorityOrder = {"high": 3, "medium": 2, "low": 1};
-            return priorityOrder[a['priority']]!.compareTo(priorityOrder[b['priority']]!);
+            return priorityOrder[a['priority']]!
+                .compareTo(priorityOrder[b['priority']]!);
           } else if (selectedSortOption == "Эмоциональная нагрузка") {
             return a['emotionalLoad'].compareTo(b['emotionalLoad']);
           }
@@ -528,8 +535,12 @@ class _TasksScreenState extends State<TasksScreen> {
                 return await _showDeleteConfirmation(context, task['id']);
               },
               child: Card(
+                color: _isOverdue(task['deadline'])
+                    ? Colors.red.shade100
+                    : Colors.white,
                 elevation: 4, // Тень для красоты
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
                 child: Row(
                   children: [
                     // ✅ Цветная полоса слева
@@ -546,29 +557,37 @@ class _TasksScreenState extends State<TasksScreen> {
                     ),
                     Expanded(
                       child: ListTile(
-                        title: Text(task['title'], style: TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(task['title'],
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text("Категория: ${task['category']}"),
-                            Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
-                            Text("Приоритет: ${_getPriorityText(task['priority'])}"),
-                            Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
+                            Text(
+                                "Дедлайн: ${_formatTimestamp(task['deadline'])}"),
+                            Text(
+                                "Приоритет: ${_getPriorityText(task['priority'])}"),
+                            Text(
+                                "Эмоциональная нагрузка: ${task['emotionalLoad']}"),
                           ],
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _showEditTaskDialog(context, task),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.check_circle, color: Colors.green),
-                              onPressed: () => _completeTask(task['id']),
-                            ),
-                          ],
-                        ),
+                        trailing: status == "completed"
+                            ? null
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit, color: Colors.blue),
+                                    onPressed: () =>
+                                        _showEditTaskDialog(context, task),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.check_circle,
+                                        color: Colors.green),
+                                    onPressed: () => _completeTask(task['id']),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                   ],
@@ -580,5 +599,4 @@ class _TasksScreenState extends State<TasksScreen> {
       },
     );
   }
-
 }
