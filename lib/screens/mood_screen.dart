@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../widgets/mood_selector.dart';
 
 class MoodScreen extends StatefulWidget {
   @override
@@ -10,13 +11,6 @@ class MoodScreen extends StatefulWidget {
 class _MoodScreenState extends State<MoodScreen> {
   String selectedMood = "";
   String note = "";
-
-  final List<Map<String, String>> moodOptions = [
-    {"emoji": "😊", "type": "Радость"},
-    {"emoji": "😢", "type": "Грусть"},
-    {"emoji": "😌", "type": "Спокойствие"},
-    {"emoji": "😫", "type": "Усталость"},
-  ];
 
   void _saveMood() async {
     if (selectedMood.isEmpty) {
@@ -79,7 +73,6 @@ class _MoodScreenState extends State<MoodScreen> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,27 +84,13 @@ class _MoodScreenState extends State<MoodScreen> {
           children: [
             Text("Выберите ваше настроение:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly, //Равномерное распределение
-              children: moodOptions.map((mood) {
-                return Expanded( // Равномерное распределение по ширине
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedMood = mood["type"]!;
-                      });
-                    },
-                    child: Column(
-                      children: [
-                        Text(mood["emoji"]!, style: TextStyle(fontSize: 30)),
-                        SizedBox(height: 5),
-                        Text(mood["type"]!, style: TextStyle(fontSize: 14)),
-                        if (selectedMood == mood["type"]) Icon(Icons.check, color: Colors.green),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+            MoodSelector(
+              selectedMood: selectedMood,
+              onMoodSelected: (mood) {
+                setState(() {
+                  selectedMood = mood;
+                });
+              },
             ),
             SizedBox(height: 20),
             TextField(
