@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_appp/widgets/task_card.dart';
 
+import '../widgets/app_dropdown.dart';
+
 class TasksScreen extends StatefulWidget {
   @override
   _TasksScreenState createState() => _TasksScreenState();
@@ -42,23 +44,14 @@ class _TasksScreenState extends State<TasksScreen> {
             ],
           ),
           actions: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: DropdownButton<String>(
-                value: selectedSortOption,
-                items: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"]
-                    .map((String option) {
-                  return DropdownMenuItem<String>(
-                    value: option,
-                    child: Text(option),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedSortOption = value!;
-                  });
-                },
-              ),
+            AppDropdown(
+              selectedOption: selectedSortOption,
+              options: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
+              onOptionSelected: (value) {
+                setState(() {
+                  selectedSortOption = value;
+                });
+              },
             ),
           ],
         ),
@@ -504,22 +497,21 @@ class _TasksScreenState extends State<TasksScreen> {
             final task = tasks[index];
 
             return Dismissible(
-              key: Key(task['id']),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                color: Colors.red,
-                alignment: Alignment.centerRight,
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Icon(Icons.delete, color: Colors.white, size: 30),
-              ),
-              confirmDismiss: (direction) async {
-                return await _showDeleteConfirmation(context, task['id']);
-              },
-              child: TaskCard(
-                  task: task,
-                  onEdit: () => _showEditTaskDialog(context, task),
-                  onComplete: () => _completeTask(task['id']))
-            );
+                key: Key(task['id']),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Icon(Icons.delete, color: Colors.white, size: 30),
+                ),
+                confirmDismiss: (direction) async {
+                  return await _showDeleteConfirmation(context, task['id']);
+                },
+                child: TaskCard(
+                    task: task,
+                    onEdit: () => _showEditTaskDialog(context, task),
+                    onComplete: () => _completeTask(task['id'])));
           },
         );
       },
