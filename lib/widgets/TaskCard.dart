@@ -1,0 +1,86 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+class TaskCard extends StatelessWidget {
+  final Map<String, dynamic> task;
+  final VoidCallback? onEdit;
+  final VoidCallback? onComplete;
+
+  const TaskCard({required this.task, this.onEdit, this.onComplete, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    bool isCompleted = task['status'] == "completed";
+
+    return Card(
+      color: _isOverdue(task['deadline']) ? Colors.red.shade100 : Colors.white,
+      elevation: 4, // Тень для красоты
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 80, // Высота карточки
+            decoration: BoxDecoration(
+              color: _getTaskColor(task['emotionalLoad']),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8),
+                bottomLeft: Radius.circular(8),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListTile(
+              title: Text(task['title'],
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Категория: ${task['category']}"),
+                  Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
+                  Text("Приоритет: ${task['priority']}"),
+                  Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
+                ],
+              ),
+              trailing: isCompleted
+                  ? null
+                  : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit, color: Colors.blue),
+                    onPressed: onEdit,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.check_circle, color: Colors.green),
+                    onPressed: onComplete,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getTaskColor(int emotionalLoad) {
+    if (emotionalLoad >= 4) {
+      return Colors.red.shade300;
+    } else if (emotionalLoad == 3) {
+      return Colors.yellow.shade300;
+    } else {
+      return Colors.green.shade300;
+    }
+  }
+
+  bool _isOverdue(Timestamp deadline) {
+    DateTime now = DateTime.now();
+    return deadline.toDate().isBefore(now);
+  }
+
+  String _formatTimestamp(Timestamp timestamp) {
+    DateTime date = timestamp.toDate();
+    return "${date.day}.${date.month}.${date.year} ${date.hour}:${date.minute}";
+  }
+}

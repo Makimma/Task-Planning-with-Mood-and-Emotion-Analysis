@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'auth_screen.dart';
-import '../auth_service.dart';
+import '../services/auth_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   final AuthService _authService = AuthService();

@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_appp/widgets/TaskCard.dart';
 
 class TasksScreen extends StatefulWidget {
   @override
@@ -73,11 +74,6 @@ class _TasksScreenState extends State<TasksScreen> {
         ),
       ),
     );
-  }
-
-  String _formatTimestamp(Timestamp timestamp) {
-    DateTime date = timestamp.toDate();
-    return "${date.day}.${date.month}.${date.year} ${date.hour}:${date.minute}";
   }
 
   String _getPriorityText(String priority) {
@@ -414,16 +410,6 @@ class _TasksScreenState extends State<TasksScreen> {
     });
   }
 
-  Color _getTaskColor(int emotionalLoad) {
-    if (emotionalLoad >= 4) {
-      return Colors.red.shade300;
-    } else if (emotionalLoad == 3) {
-      return Colors.yellow.shade300;
-    } else {
-      return Colors.green.shade300;
-    }
-  }
-
   void _showDateTimePicker(BuildContext context, DateTime initialDate,
       Function(DateTime) onDateTimeSelected) {
     DateTime now = DateTime.now();
@@ -468,11 +454,6 @@ class _TasksScreenState extends State<TasksScreen> {
         );
       },
     );
-  }
-
-  bool _isOverdue(Timestamp deadline) {
-    DateTime now = DateTime.now();
-    return deadline.toDate().isBefore(now);
   }
 
   Widget _buildTaskList(String status) {
@@ -534,65 +515,10 @@ class _TasksScreenState extends State<TasksScreen> {
               confirmDismiss: (direction) async {
                 return await _showDeleteConfirmation(context, task['id']);
               },
-              child: Card(
-                color: _isOverdue(task['deadline'])
-                    ? Colors.red.shade100
-                    : Colors.white,
-                elevation: 4, // Тень для красоты
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                child: Row(
-                  children: [
-                    // ✅ Цветная полоса слева
-                    Container(
-                      width: 8,
-                      height: 80, // Высота карточки
-                      decoration: BoxDecoration(
-                        color: _getTaskColor(task['emotionalLoad']),
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                          bottomLeft: Radius.circular(8),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: ListTile(
-                        title: Text(task['title'],
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Категория: ${task['category']}"),
-                            Text(
-                                "Дедлайн: ${_formatTimestamp(task['deadline'])}"),
-                            Text(
-                                "Приоритет: ${_getPriorityText(task['priority'])}"),
-                            Text(
-                                "Эмоциональная нагрузка: ${task['emotionalLoad']}"),
-                          ],
-                        ),
-                        trailing: status == "completed"
-                            ? null
-                            : Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.edit, color: Colors.blue),
-                                    onPressed: () =>
-                                        _showEditTaskDialog(context, task),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.check_circle,
-                                        color: Colors.green),
-                                    onPressed: () => _completeTask(task['id']),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              child: TaskCard(
+                  task: task,
+                  onEdit: () => _showEditTaskDialog(context, task),
+                  onComplete: () => _completeTask(task['id']))
             );
           },
         );
