@@ -15,6 +15,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   int tasksThisWeek = 0;
   int tasksThisMonth = 0;
   List<Map<String, dynamic>> moodData = [];
+  String dominantMood = "Нет данных";
+  double positiveDaysPercentage = 0.0;
+  double negativeDaysPercentage = 0.0;
 
   @override
   void initState() {
@@ -34,7 +37,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     int weekCount = await _getCompletedTasks(user.uid, startDate);
     int monthCount =
-        await _getCompletedTasks(user.uid, DateTime(now.year, now.month, 1));
+    await _getCompletedTasks(user.uid, DateTime(now.year, now.month, 1));
 
     setState(() {
       tasksThisWeek = weekCount;
@@ -70,20 +73,56 @@ class _ReportsScreenState extends State<ReportsScreen> {
         .doc(user.uid)
         .collection('moods')
         .where('timestamp',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+        isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
         .orderBy('timestamp', descending: false)
         .get();
 
+    List<Map<String, dynamic>> moods = snapshot.docs.map((doc) {
+      return {
+        "date": (doc['timestamp'] as Timestamp).toDate(),
+        "mood": doc['type'],
+      };
+    }).toList();
+
+    _calculateMoodStatistics(moods);
+  }
+
+  void _calculateMoodStatistics(List<Map<String, dynamic>> moods) {
+    if (moods.isEmpty) {
+      setState(() {
+        dominantMood = "Нет данных";
+        positiveDaysPercentage = 0.0;
+        negativeDaysPercentage = 0.0;
+      });
+      return;
+    }
+
+    Map<String, int> moodCounts = {};
+    int positiveDays = 0;
+    int negativeDays = 0;
+
+    for (var mood in moods) {
+      String type = mood["mood"];
+      moodCounts[type] = (moodCounts[type] ?? 0) + 1;
+
+      if (type == "Радость" || type == "Спокойствие") {
+        positiveDays++;
+      } else {
+        negativeDays++;
+      }
+    }
+
+    String mostCommonMood =
+        moodCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+
+    int totalDays = moods.length;
     setState(() {
-      moodData = snapshot.docs.map((doc) {
-        return {
-          "date": (doc['timestamp'] as Timestamp).toDate(),
-          "mood": doc['type'],
-          "note": doc['note'],
-        };
-      }).toList();
+      dominantMood = mostCommonMood;
+      positiveDaysPercentage = (positiveDays / totalDays) * 100;
+      negativeDaysPercentage = (negativeDays / totalDays) * 100;
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -91,11 +130,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text("Отчёты"),
+          title: Text("Отчеты"),
           bottom: TabBar(
             tabs: [
-              Tab(text: "Задачи"),
-              Tab(text: "Настроение"),
+              Tab(text: "Обзор"),
+              Tab(text: "Графики"),
             ],
           ),
           actions: [
@@ -113,7 +152,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         body: TabBarView(
           children: [
-            _buildTaskReport(),
+            _buildOverviewReport(),
             _buildMoodReport(),
           ],
         ),
@@ -121,7 +160,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildTaskReport() {
+  Widget _buildOverviewReport() {
     int displayedTasks =
         selectedPeriod == "Неделя" ? tasksThisWeek : tasksThisMonth;
 
@@ -131,10 +170,39 @@ class _ReportsScreenState extends State<ReportsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
+            "Среднее настроение:",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 10),
+          Card(
+            color: Colors.blue.shade50,
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Text(
+                    "Преобладающее настроение: $dominantMood",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "Позитивные дни: ${positiveDaysPercentage.toStringAsFixed(1)}%",
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  Text(
+                    "Негативные дни: ${negativeDaysPercentage.toStringAsFixed(1)}%",
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          Text(
             "Выполненные задачи:",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 20),
+          SizedBox(height: 10),
           ReportCard(
             title: selectedPeriod == "Неделя" ? "За неделю" : "За месяц",
             count: displayedTasks,

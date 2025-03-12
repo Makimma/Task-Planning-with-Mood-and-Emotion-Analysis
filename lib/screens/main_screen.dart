@@ -42,7 +42,7 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.task), label: "Задачи"),
           BottomNavigationBarItem(icon: Icon(Icons.mood), label: "Настроение"),
           BottomNavigationBarItem(icon: Icon(Icons.star), label: "Рекомендации"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Отчёты"),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Отчеты"),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Настройки"),
         ],
         currentIndex: _selectedIndex,
