@@ -1,11 +1,9 @@
 import 'dart:developer';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_appp/widgets/task_card.dart';
-
 import '../widgets/app_dropdown.dart';
 
 class TasksScreen extends StatefulWidget {
@@ -354,12 +352,14 @@ class _TasksScreenState extends State<TasksScreen> {
         .doc(taskId)
         .update({
       'status': 'completed',
+      'completedAt': Timestamp.now(),
     }).then((_) {
       log("✅ Задача выполнена: $taskId");
     }).catchError((error) {
-      log("❌ Ошибка выполнения задачи: $error");
+      log("❌ Ошибка выполнения: $error");
     });
   }
+
 
   Future<bool?> _showDeleteConfirmation(
       BuildContext context, String taskId) async {
