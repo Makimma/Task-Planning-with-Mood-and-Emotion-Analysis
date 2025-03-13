@@ -15,6 +15,10 @@ class _TasksScreenState extends State<TasksScreen> {
   List<Map<String, dynamic>> allTasks = [];  // 🔹 Все задачи
   List<Map<String, dynamic>> filteredTasks = []; // 🔹 Отфильтрованные задачи
 
+  Set<String> selectedPriorities = {}; // Выбранные приоритеты (множественный выбор)
+  double minLoad = 1, maxLoad = 5; // Диапазон эмоциональной нагрузки
+
+
   String selectedCategory = "Все категории";
   bool filterByDeadline = false;
   bool filterByPriority = false;
@@ -131,8 +135,8 @@ class _TasksScreenState extends State<TasksScreen> {
 
   void _applyFilters() {
     setState(() {
-      if (!filterByDeadline && !filterByPriority && !filterByEmotionalLoad && selectedCategory == "Все категории") {
-        filteredTasks = List.from(allTasks);
+      if (selectedPriorities.isEmpty && selectedCategory == "Все категории" && minLoad == 1 && maxLoad == 5) {
+        filteredTasks = List.from(allTasks); // Если фильтры выключены, показываем все задачи
         return;
       }
 
@@ -142,21 +146,23 @@ class _TasksScreenState extends State<TasksScreen> {
         if (selectedCategory != "Все категории") {
           matches &= task['category'] == selectedCategory;
         }
-        if (filterByDeadline) {
-          matches &= task['deadline'] != null;
+        if (selectedPriorities.isNotEmpty) {
+          matches &= selectedPriorities.contains(task['priority']);
         }
-        if (filterByPriority) {
-          matches &= task['priority'] == "high";
+        if (task['emotionalLoad'] != null) {
+          int load = task['emotionalLoad'];
+          matches &= load >= minLoad && load <= maxLoad;
         }
-        if (filterByEmotionalLoad) {
-          matches &= task['emotionalLoad'] > 3;
-        }
+
         return matches;
       }).toList();
     });
   }
 
   void _showFilterDialog(BuildContext context) {
+    Set<String> tempSelectedPriorities = Set.from(selectedPriorities); // Локальная копия
+    double tempMinLoad = minLoad, tempMaxLoad = maxLoad; // Локальная копия
+
     showDialog(
       context: context,
       builder: (context) {
@@ -186,35 +192,40 @@ class _TasksScreenState extends State<TasksScreen> {
                   ),
                   SizedBox(height: 10),
 
-                  // Фильтр по дедлайну
-                  CheckboxListTile(
-                    title: Text("Фильтр по дедлайну"),
-                    value: filterByDeadline,
-                    onChanged: (value) {
-                      setState(() {
-                        filterByDeadline = value!;
-                      });
-                    },
+                  // Фильтр по приоритету (множественный выбор)
+                  Text("Приоритет:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Wrap(
+                    spacing: 8.0,
+                    children: ["low", "medium", "high"].map((priority) {
+                      return FilterChip(
+                        label: Text(_getPriorityText(priority)),
+                        selected: tempSelectedPriorities.contains(priority),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              tempSelectedPriorities.add(priority);
+                            } else {
+                              tempSelectedPriorities.remove(priority);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
+                  SizedBox(height: 10),
 
-                  // Фильтр по приоритету
-                  CheckboxListTile(
-                    title: Text("Фильтр по приоритету"),
-                    value: filterByPriority,
-                    onChanged: (value) {
+                  // Фильтр по эмоциональной нагрузке (слайдер)
+                  Text("Эмоциональная нагрузка:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  RangeSlider(
+                    values: RangeValues(tempMinLoad, tempMaxLoad),
+                    min: 1,
+                    max: 5,
+                    divisions: 4,
+                    labels: RangeLabels(tempMinLoad.toString(), tempMaxLoad.toString()),
+                    onChanged: (values) {
                       setState(() {
-                        filterByPriority = value!;
-                      });
-                    },
-                  ),
-
-                  // Фильтр по эмоциональной нагрузке
-                  CheckboxListTile(
-                    title: Text("Фильтр по нагрузке"),
-                    value: filterByEmotionalLoad,
-                    onChanged: (value) {
-                      setState(() {
-                        filterByEmotionalLoad = value!;
+                        tempMinLoad = values.start;
+                        tempMaxLoad = values.end;
                       });
                     },
                   ),
@@ -229,7 +240,12 @@ class _TasksScreenState extends State<TasksScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    _applyFilters(); // Применяем фильтрацию
+                    setState(() {
+                      selectedPriorities = tempSelectedPriorities;
+                      minLoad = tempMinLoad;
+                      maxLoad = tempMaxLoad;
+                    });
+                    _applyFilters(); // Применяем фильтр
                     Navigator.pop(context); // Закрываем диалог
                   },
                   child: Text("Применить"),
@@ -241,7 +257,6 @@ class _TasksScreenState extends State<TasksScreen> {
       },
     );
   }
-
 
   String _getPriorityText(String priority) {
     switch (priority) {
