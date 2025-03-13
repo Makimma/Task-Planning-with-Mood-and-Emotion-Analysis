@@ -11,6 +11,36 @@ class MoodScreen extends StatefulWidget {
 class _MoodScreenState extends State<MoodScreen> {
   String selectedMood = "";
   String note = "";
+  String currentMood = "Настроение не выбрано";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentMood();
+  }
+
+  void _fetchCurrentMood() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    DateTime now = DateTime.now();
+    DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
+    DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+    QuerySnapshot moodSnapshot = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .collection("moods")
+        .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+        .get();
+
+    if (moodSnapshot.docs.isNotEmpty) {
+      setState(() {
+        currentMood = moodSnapshot.docs.first["type"];
+      });
+    }
+  }
 
   void _saveMood() async {
     if (selectedMood.isEmpty) {
@@ -27,7 +57,6 @@ class _MoodScreenState extends State<MoodScreen> {
     DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
     DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-    // Ищем существующую запись настроения за сегодня
     QuerySnapshot moodSnapshot = await FirebaseFirestore.instance
         .collection("users")
         .doc(user.uid)
@@ -37,7 +66,6 @@ class _MoodScreenState extends State<MoodScreen> {
         .get();
 
     if (moodSnapshot.docs.isNotEmpty) {
-      // Обновляем существующую запись
       await FirebaseFirestore.instance
           .collection("users")
           .doc(user.uid)
@@ -52,7 +80,6 @@ class _MoodScreenState extends State<MoodScreen> {
         SnackBar(content: Text("Настроение обновлено!")),
       );
     } else {
-      // Создаём новую запись, если сегодня ещё не было
       await FirebaseFirestore.instance
           .collection("users")
           .doc(user.uid)
@@ -68,6 +95,7 @@ class _MoodScreenState extends State<MoodScreen> {
     }
 
     setState(() {
+      currentMood = selectedMood; // ✅ Обновляем текущее настроение на экране
       selectedMood = "";
       note = "";
     });
@@ -82,6 +110,25 @@ class _MoodScreenState extends State<MoodScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text("Текущее настроение:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 5),
+            Card(
+              color: Colors.blue.shade50,
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Icon(Icons.mood, color: Colors.blue),
+                    SizedBox(width: 10),
+                    Text(
+                      currentMood,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
             Text("Выберите ваше настроение:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             MoodSelector(
