@@ -1,10 +1,9 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_appp/services/task_actions.dart';
 import 'package:flutter_appp/widgets/task_card.dart';
-import 'package:intl/intl.dart';
 
 class RecommendationsScreen extends StatefulWidget {
   @override
@@ -12,14 +11,12 @@ class RecommendationsScreen extends StatefulWidget {
 }
 
 class _RecommendationsScreenState extends State<RecommendationsScreen> {
-  List<Map<String, dynamic>> tasks = [];
   String? currentMood;
 
   @override
   void initState() {
     super.initState();
     _fetchUserMood();
-    _fetchTasks();
   }
 
   void _fetchUserMood() async {
@@ -45,39 +42,11 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     }
   }
 
-  void _fetchTasks() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .where('status', isEqualTo: 'active') // Только активные задачи
-        .get();
-
-    List<Map<String, dynamic>> fetchedTasks = snapshot.docs.map((doc) {
-      return {
-        "id": doc.id,
-        "title": doc["title"],
-        "category": doc["category"],
-        "deadline": (doc["deadline"] as Timestamp).toDate(),
-        "priority": doc["priority"],
-        "emotionalLoad": doc["emotionalLoad"],
-      };
-    }).toList();
-
-    fetchedTasks.sort((a, b) => _calculatePriority(b).compareTo(_calculatePriority(a)));
-
-    setState(() {
-      tasks = fetchedTasks;
-    });
-  }
-
   double _calculatePriority(Map<String, dynamic> task) {
     DateTime now = DateTime.now();
-    double deadlineFactor = 1 / ((task["deadline"].difference(now).inHours + 1).toDouble());
+    DateTime deadline = (task["deadline"] as Timestamp).toDate();
 
+    double deadlineFactor = 1 / ((deadline.difference(now).inHours + 1).toDouble());
     double emotionalLoadFactor = _getEmotionalLoadFactor(task["emotionalLoad"]);
 
     Map<String, double> priorityMap = {"high": 1.0, "medium": 0.7, "low": 0.3};
@@ -86,32 +55,18 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     return (deadlineFactor * 0.5) + (emotionalLoadFactor * 0.3) + (priorityFactor * 0.2);
   }
 
+
   double _getEmotionalLoadFactor(int load) {
     if (currentMood == "Радость") {
       return load / 5;
     } else if (currentMood == "Спокойствие") {
-      return 1 - (pow((load - 3) / 4, 2)).toDouble(); // ✅ Исправлено
+      return 1 - (pow(load - 3, 2) / 4).toDouble();
     } else if (currentMood == "Грусть") {
       return (5 - load) / 4;
     } else if (currentMood == "Усталость") {
-      return (pow(((5 - load + 4) / 20), 2)).toDouble(); // ✅ Исправлено
+      return ((pow(5 - load, 2) + 4) / 20).toDouble();
     }
-    return 0.5; // Значение по умолчанию
-  }
-
-
-  void _markTaskAsCompleted(String taskId) {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .update({"status": "completed"}).then((_) {
-      _fetchTasks();
-    });
+    return 0.5;
   }
 
   @override
@@ -147,54 +102,53 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
               "Рекомендуемые задачи:",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            Expanded(
-              child: tasks.isEmpty
-                  ? Center(child: Text("Нет активных задач"))
-                  : ListView.builder(
-                itemCount: tasks.length,
-                itemBuilder: (context, index) {
-                  final task = tasks[index];
-                  // return TaskCard(
-                  //     task: task,
-                  //     onEdit: () => _showEditTaskDialog(context, task),
-                  //     onComplete: () => _completeTask(task['id']));
-                  return Card(
-                    margin: EdgeInsets.symmetric(vertical: 8),
-                    child: ListTile(
-                      title: Text(task["title"], style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Категория: ${task["category"]}"),
-                          Text("Дедлайн: ${DateFormat('dd.MM.yyyy HH:mm').format(task["deadline"])}"),
-                          Text("Эмоциональная нагрузка: ${task["emotionalLoad"]}"),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () {
-                              // TODO: Добавить переход на экран редактирования задачи
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.check_circle, color: Colors.green),
-                            onPressed: () {
-                              _markTaskAsCompleted(task["id"]);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            Expanded(child: _buildTaskList()),
           ],
         ),
       ),
+    );
+  }
+
+  /// 🔥 **Используем `StreamBuilder`, чтобы автоматически обновлять задачи**
+  Widget _buildTaskList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection('tasks')
+          .where('status', isEqualTo: 'active')
+          .snapshots(), // ✅ Автоматическое обновление
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(child: Text("Нет активных задач"));
+        }
+
+        List<Map<String, dynamic>> tasks = snapshot.data!.docs.map((doc) {
+          return {
+            "id": doc.id,
+            ...doc.data() as Map<String, dynamic>,
+          };
+        }).toList();
+
+        tasks.sort((a, b) => _calculatePriority(b).compareTo(_calculatePriority(a)));
+
+        return ListView.builder(
+          itemCount: tasks.length,
+          itemBuilder: (context, index) {
+            final task = tasks[index];
+
+            return TaskCard(
+              task: task,
+              onEdit: () => TaskActions.showEditTaskDialog(context, task),
+              onComplete: () => TaskActions.completeTask(task['id']),
+            );
+          },
+        );
+      },
     );
   }
 }

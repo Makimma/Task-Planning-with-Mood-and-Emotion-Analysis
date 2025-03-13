@@ -11,16 +11,17 @@ class TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool isCompleted = task['status'] == "completed";
+    DateTime deadline = _convertToDateTime(task['deadline']); // Преобразуем тип
 
     return Card(
-      color: _isOverdue(task['deadline']) ? Colors.red.shade100 : Colors.white,
-      elevation: 4, // Тень для красоты
+      color: _isOverdue(deadline) ? Colors.red.shade100 : Colors.white,
+      elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Row(
         children: [
           Container(
             width: 8,
-            height: 80, // Высота карточки
+            height: 80,
             decoration: BoxDecoration(
               color: _getTaskColor(task['emotionalLoad']),
               borderRadius: BorderRadius.only(
@@ -31,13 +32,12 @@ class TaskCard extends StatelessWidget {
           ),
           Expanded(
             child: ListTile(
-              title: Text(task['title'],
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(task['title'], style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Категория: ${task['category']}"),
-                  Text("Дедлайн: ${_formatTimestamp(task['deadline'])}"),
+                  Text("Дедлайн: ${_formatTimestamp(deadline)}"),
                   Text("Приоритет: ${task['priority']}"),
                   Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
                 ],
@@ -64,6 +64,25 @@ class TaskCard extends StatelessWidget {
     );
   }
 
+  DateTime _convertToDateTime(dynamic deadline) {
+    if (deadline is Timestamp) {
+      return deadline.toDate();
+    } else if (deadline is DateTime) {
+      return deadline;
+    } else {
+      throw ArgumentError("Неподдерживаемый формат даты");
+    }
+  }
+
+  bool _isOverdue(DateTime deadline) {
+    DateTime now = DateTime.now();
+    return deadline.isBefore(now);
+  }
+
+  String _formatTimestamp(DateTime date) {
+    return "${date.day}.${date.month}.${date.year} ${date.hour}:${date.minute}";
+  }
+
   Color _getTaskColor(int emotionalLoad) {
     if (emotionalLoad >= 4) {
       return Colors.red.shade300;
@@ -72,15 +91,5 @@ class TaskCard extends StatelessWidget {
     } else {
       return Colors.green.shade300;
     }
-  }
-
-  bool _isOverdue(Timestamp deadline) {
-    DateTime now = DateTime.now();
-    return deadline.toDate().isBefore(now);
-  }
-
-  String _formatTimestamp(Timestamp timestamp) {
-    DateTime date = timestamp.toDate();
-    return "${date.day}.${date.month}.${date.year} ${date.hour}:${date.minute}";
   }
 }
