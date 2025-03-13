@@ -84,6 +84,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
       };
     }).toList();
 
+    setState(() {
+      moodData = snapshot.docs.map((doc) {
+        return {
+          "date": (doc['timestamp'] as Timestamp).toDate(),
+          "mood": doc['type'],
+          "note": doc['note'],
+        };
+      }).toList();
+    });
+
     _calculateMoodStatistics(moods);
   }
 
