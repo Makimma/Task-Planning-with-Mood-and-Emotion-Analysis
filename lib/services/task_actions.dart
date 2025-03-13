@@ -4,6 +4,46 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class TaskActions {
+  static Future<bool?> showDeleteConfirmation(
+      BuildContext context, String taskId) async {
+    return await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Удалить задачу?"),
+          content: Text(
+              "Вы уверены, что хотите удалить эту задачу? Действие нельзя отменить."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false), // ❌ Отмена
+              child: Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _deleteTask(taskId);
+                Navigator.pop(context, true); // ✅ Подтверждение
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text("Удалить", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  static void _deleteTask(String taskId) {
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection('tasks')
+        .doc(taskId)
+        .delete()
+        .then((_) {
+    }).catchError((error) {;
+    });
+  }
+
   static void showEditTaskDialog(BuildContext context, Map<String, dynamic> task) {
     final _formKey = GlobalKey<FormState>();
     String title = task['title'];

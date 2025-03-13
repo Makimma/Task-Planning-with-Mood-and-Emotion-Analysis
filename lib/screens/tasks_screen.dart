@@ -209,47 +209,7 @@ class _TasksScreenState extends State<TasksScreen> {
     });
   }
 
-  Future<bool?> _showDeleteConfirmation(
-      BuildContext context, String taskId) async {
-    return await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Удалить задачу?"),
-          content: Text(
-              "Вы уверены, что хотите удалить эту задачу? Действие нельзя отменить."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false), // ❌ Отмена
-              child: Text("Отмена"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _deleteTask(taskId);
-                Navigator.pop(context, true); // ✅ Подтверждение
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: Text("Удалить", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
-  void _deleteTask(String taskId) {
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .delete()
-        .then((_) {
-      log("✅ Задача удалена: $taskId");
-    }).catchError((error) {
-      log("❌ Ошибка удаления: $error");
-    });
-  }
 
   void _showDateTimePicker(BuildContext context, DateTime initialDate,
       Function(DateTime) onDateTimeSelected) {
@@ -354,7 +314,7 @@ class _TasksScreenState extends State<TasksScreen> {
                   child: Icon(Icons.delete, color: Colors.white, size: 30),
                 ),
                 confirmDismiss: (direction) async {
-                  return await _showDeleteConfirmation(context, task['id']);
+                  return await TaskActions.showDeleteConfirmation(context, task['id']);
                 },
                 child: TaskCard(
                     task: task,

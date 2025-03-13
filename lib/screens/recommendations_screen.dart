@@ -109,7 +109,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     );
   }
 
-  /// 🔥 **Используем `StreamBuilder`, чтобы автоматически обновлять задачи**
   Widget _buildTaskList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -141,10 +140,23 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
           itemBuilder: (context, index) {
             final task = tasks[index];
 
-            return TaskCard(
+            return Dismissible(
+                key: Key(task['id']),
+            direction: DismissDirection.endToStart,
+            background: Container(
+            color: Colors.red,
+            alignment: Alignment.centerRight,
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Icon(Icons.delete, color: Colors.white, size: 30),
+            ),
+            confirmDismiss: (direction) async {
+            return await TaskActions.showDeleteConfirmation(context, task['id']);
+            },
+            child: TaskCard(
               task: task,
               onEdit: () => TaskActions.showEditTaskDialog(context, task),
               onComplete: () => TaskActions.completeTask(task['id']),
+            )
             );
           },
         );
