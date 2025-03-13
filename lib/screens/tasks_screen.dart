@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,9 +12,18 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
+  List<Map<String, dynamic>> allTasks = [];  // 🔹 Все задачи
+  List<Map<String, dynamic>> filteredTasks = []; // 🔹 Отфильтрованные задачи
+
+  String selectedCategory = "Все категории";
+  bool filterByDeadline = false;
+  bool filterByPriority = false;
+  bool filterByEmotionalLoad = false;
+
   String selectedSortOption = "Дедлайн";
   final User? user = FirebaseAuth.instance.currentUser;
   final List<String> taskCategories = [
+    "Все категории",
     "Работа",
     "Учёба",
     "Финансы",
@@ -27,32 +35,62 @@ class _TasksScreenState extends State<TasksScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _fetchTasks("active");
+  }
+
+  @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // ✅ Две вкладки: "Активные" и "Выполненные"
+      length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text("Задачи"),
-          bottom: TabBar(
-            labelColor: Colors.black, // Цвет активной вкладки
-            unselectedLabelColor: Colors.black, // Цвет неактивной вкладки
-            indicatorColor: Colors.black, // Цвет подчеркивания вкладки
-            tabs: [
-              Tab(text: "Активные"),
-              Tab(text: "Выполненные"),
-            ],
-          ),
+          titleSpacing: 0,
           actions: [
-            AppDropdown(
-              selectedOption: selectedSortOption,
-              options: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
-              onOptionSelected: (value) {
-                setState(() {
-                  selectedSortOption = value;
-                });
+            IconButton(
+              icon: Icon(Icons.filter_list),
+              onPressed: () {
+                _showFilterDialog(context);
               },
             ),
           ],
+          title: Row(
+            children: [
+              SizedBox(width: 16), // ✅ Отступ от края экрана
+              AppDropdown(
+                selectedOption: selectedSortOption,
+                options: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
+                maxWidth: 140, // ✅ Ограничиваем ширину
+                onOptionSelected: (value) {
+                  setState(() {
+                    selectedSortOption = value;
+                  });
+                },
+              ),
+              SizedBox(width: 10), // ✅ Отступ перед вторым выпадающим списком
+              // Flexible(
+              //   child: DropdownButton<String>(
+              //     value: taskCategories.contains(selectedCategory)
+              //         ? selectedCategory
+              //         : "Все категории",
+              //     items: taskCategories.toSet().map((String value) {
+              //       return DropdownMenuItem<String>(
+              //         value: value,
+              //         child: Text(value,
+              //             overflow: TextOverflow
+              //                 .ellipsis),
+              //       );
+              //     }).toList(),
+              //     onChanged: (value) {
+              //       setState(() {
+              //         selectedCategory = value!;
+              //       });
+              //     },
+              //   ),
+              // ),
+            ],
+          ),
         ),
         body: TabBarView(
           children: [
@@ -67,6 +105,143 @@ class _TasksScreenState extends State<TasksScreen> {
       ),
     );
   }
+
+  void _fetchTasks(String status) async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('tasks')
+        .where('status', isEqualTo: status)
+        .get();
+
+    setState(() {
+      allTasks = snapshot.docs.map((doc) {
+        return {
+          'id': doc.id,
+          ...doc.data() as Map<String, dynamic>,
+        };
+      }).toList();
+
+      _applyFilters();
+    });
+  }
+
+  void _applyFilters() {
+    setState(() {
+      if (!filterByDeadline && !filterByPriority && !filterByEmotionalLoad && selectedCategory == "Все категории") {
+        filteredTasks = List.from(allTasks);
+        return;
+      }
+
+      filteredTasks = allTasks.where((task) {
+        bool matches = true;
+
+        if (selectedCategory != "Все категории") {
+          matches &= task['category'] == selectedCategory;
+        }
+        if (filterByDeadline) {
+          matches &= task['deadline'] != null;
+        }
+        if (filterByPriority) {
+          matches &= task['priority'] == "high";
+        }
+        if (filterByEmotionalLoad) {
+          matches &= task['emotionalLoad'] > 3;
+        }
+        return matches;
+      }).toList();
+    });
+  }
+
+  void _showFilterDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text("Фильтр задач"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Фильтр по категории
+                  DropdownButtonFormField<String>(
+                    value: selectedCategory,
+                    items: ["Все категории", "Работа", "Учёба", "Финансы", "Здоровье и спорт", "Личное"]
+                        .map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategory = value!;
+                      });
+                    },
+                    decoration: InputDecoration(labelText: "Категория"),
+                  ),
+                  SizedBox(height: 10),
+
+                  // Фильтр по дедлайну
+                  CheckboxListTile(
+                    title: Text("Фильтр по дедлайну"),
+                    value: filterByDeadline,
+                    onChanged: (value) {
+                      setState(() {
+                        filterByDeadline = value!;
+                      });
+                    },
+                  ),
+
+                  // Фильтр по приоритету
+                  CheckboxListTile(
+                    title: Text("Фильтр по приоритету"),
+                    value: filterByPriority,
+                    onChanged: (value) {
+                      setState(() {
+                        filterByPriority = value!;
+                      });
+                    },
+                  ),
+
+                  // Фильтр по эмоциональной нагрузке
+                  CheckboxListTile(
+                    title: Text("Фильтр по нагрузке"),
+                    value: filterByEmotionalLoad,
+                    onChanged: (value) {
+                      setState(() {
+                        filterByEmotionalLoad = value!;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Закрываем диалог без применения
+                  },
+                  child: Text("Отмена"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _applyFilters(); // Применяем фильтрацию
+                    Navigator.pop(context); // Закрываем диалог
+                  },
+                  child: Text("Применить"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
 
   String _getPriorityText(String priority) {
     switch (priority) {
@@ -209,8 +384,6 @@ class _TasksScreenState extends State<TasksScreen> {
     });
   }
 
-
-
   void _showDateTimePicker(BuildContext context, DateTime initialDate,
       Function(DateTime) onDateTimeSelected) {
     DateTime now = DateTime.now();
@@ -273,6 +446,9 @@ class _TasksScreenState extends State<TasksScreen> {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(child: Text("Отсутствуют задачи"));
         }
+        if (filteredTasks.isEmpty && allTasks.isNotEmpty) {
+          return Center(child: Text("Нет задач, соответствующих фильтру"));
+        }
 
         List<Map<String, dynamic>> tasks = snapshot.data!.docs.map((doc) {
           return {
@@ -297,12 +473,12 @@ class _TasksScreenState extends State<TasksScreen> {
 
         return ListView.builder(
           physics: BouncingScrollPhysics(),
-          itemCount: tasks.length + 1,
+          itemCount: filteredTasks.length,
           itemBuilder: (context, index) {
-            if (index == tasks.length) {
+            if (index == filteredTasks.length) {
               return SizedBox(height: 100);
             }
-            final task = tasks[index];
+            final task = filteredTasks[index];
 
             return Dismissible(
                 key: Key(task['id']),
@@ -317,9 +493,11 @@ class _TasksScreenState extends State<TasksScreen> {
                   return await TaskActions.showDeleteConfirmation(context, task['id']);
                 },
                 child: TaskCard(
-                    task: task,
-                    onEdit: () => TaskActions.showEditTaskDialog(context, task),
-                    onComplete: () => TaskActions.completeTask(task['id'])));
+                  task: task,
+                  onEdit: () => TaskActions.showEditTaskDialog(context, task),
+                  onComplete: () => TaskActions.completeTask(task['id']),
+                )
+            );
           },
         );
       },
