@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_appp/services/task_actions.dart';
 import 'package:flutter_appp/widgets/task_card.dart';
+import '../services/nlp_service.dart';
 import '../widgets/app_dropdown.dart';
 
 class TasksScreen extends StatefulWidget {
@@ -88,6 +89,34 @@ class _TasksScreenState extends State<TasksScreen> {
         ),
       ),
     );
+  }
+
+  int _convertSentimentToLoad(double score, double magnitude) {
+    if (score >= 0.5 && magnitude < 1.5) return 1;
+    if (score >= 0.2 && magnitude < 2.0) return 2;
+    if (-0.2 <= score && score < 0.2) return 3;
+    if (-0.5 <= score && score < -0.2 && magnitude >= 1.0) return 4;
+    return 5;
+  }
+
+  void _analyzeTaskEmotionalLoad(String title, String comment, Function(int) updateLoad) async {
+    String fullText = "$title. $comment";
+
+    // Анализируем тональность текста
+    Map<String, double>? sentiment = await NaturalLanguageService.analyzeSentiment(fullText);
+    if (sentiment == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Ошибка анализа эмоциональной нагрузки")),
+      );
+      return;
+    }
+
+    double score = sentiment["score"]!;
+    double magnitude = sentiment["magnitude"]!;
+    int emotionalLoad = _convertSentimentToLoad(score, magnitude);
+
+    // Обновляем UI слайдера в модальном окне
+    updateLoad(emotionalLoad);
   }
 
   void _fetchTasks(String status) async {
@@ -256,7 +285,7 @@ class _TasksScreenState extends State<TasksScreen> {
     String comment = "";
     String category = "Работа";
     String priority = "medium";
-    int emotionalLoad = 3;
+    int emotionalLoad = 3; // Начальное значение слайдера
     DateTime deadline = DateTime.now();
 
     showDialog(
@@ -285,8 +314,7 @@ class _TasksScreenState extends State<TasksScreen> {
                       onChanged: (value) => title = value,
                     ),
                     TextFormField(
-                      decoration: InputDecoration(
-                          labelText: "Комментарий (дополнительно)"),
+                      decoration: InputDecoration(labelText: "Комментарий (дополнительно)"),
                       maxLength: 512,
                       onChanged: (value) => comment = value,
                     ),
@@ -312,19 +340,36 @@ class _TasksScreenState extends State<TasksScreen> {
                       onChanged: (value) => setState(() => priority = value!),
                       decoration: InputDecoration(labelText: "Приоритет"),
                     ),
-                    Slider(
-                      value: emotionalLoad.toDouble(),
-                      min: 1,
-                      max: 5,
-                      divisions: 4,
-                      label: emotionalLoad.toString(),
-                      onChanged: (value) =>
-                          setState(() => emotionalLoad = value.toInt()),
+
+                    // Слайдер для эмоциональной нагрузки
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Эмоциональная нагрузка"),
+                        Slider(
+                          value: emotionalLoad.toDouble(),
+                          min: 1,
+                          max: 5,
+                          divisions: 4,
+                          label: emotionalLoad.toString(),
+                          onChanged: (value) => setState(() => emotionalLoad = value.toInt()),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            _analyzeTaskEmotionalLoad(title, comment, (newLoad) {
+                              setState(() {
+                                emotionalLoad = newLoad;
+                              });
+                            });
+                          },
+                          child: Text("Определить эмоциональную нагрузку"),
+                        ),
+                      ],
                     ),
+
                     ElevatedButton(
                       onPressed: () {
-                        _showDateTimePicker(context, deadline,
-                            (DateTime newDate) {
+                        _showDateTimePicker(context, deadline, (DateTime newDate) {
                           setState(() {
                             deadline = newDate;
                           });
@@ -345,8 +390,7 @@ class _TasksScreenState extends State<TasksScreen> {
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  _addTask(title, comment, category, priority, emotionalLoad,
-                      deadline);
+                  _addTask(title, comment, category, priority, emotionalLoad, deadline);
                   Navigator.pop(context);
                 }
               },
@@ -355,7 +399,7 @@ class _TasksScreenState extends State<TasksScreen> {
           ],
         );
       },
-    );
+    ).then((_) => setState(() => _fetchTasks("active")));
   }
 
   void _addTask(String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline) {
