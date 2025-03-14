@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/nlp_service.dart';
+import '../services/translation_service.dart';
 import '../widgets/mood_selector.dart';
 
 class MoodScreen extends StatefulWidget {
@@ -43,15 +45,45 @@ class _MoodScreenState extends State<MoodScreen> {
   }
 
   void _saveMood() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Если настроение не выбрано, анализируем заметку
+    if (selectedMood.isEmpty && note.isNotEmpty) {
+      setState(() {
+        currentMood = "Определяем настроение...";
+      });
+
+      // Переводим заметку на английский
+      String? translatedText = await TranslationService.translateText(note, "en");
+      if (translatedText == null) {
+        setState(() {
+          currentMood = "Ошибка перевода!";
+        });
+        return;
+      }
+
+      // Анализируем настроение (получаем `score` и `magnitude`)
+      Map<String, double>? sentimentResult = await NaturalLanguageService.analyzeSentiment(translatedText);
+      if (sentimentResult != null) {
+        double score = sentimentResult["score"]!;
+        double magnitude = sentimentResult["magnitude"]!;
+        selectedMood = _mapSentimentToMood(score, magnitude);
+      } else {
+        setState(() {
+          currentMood = "Ошибка анализа настроения!";
+        });
+        return;
+      }
+    }
+
+    // Проверяем, что хотя бы что-то определилось
     if (selectedMood.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Выберите настроение перед сохранением!")),
       );
       return;
     }
-
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
 
     DateTime now = DateTime.now();
     DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
@@ -95,11 +127,25 @@ class _MoodScreenState extends State<MoodScreen> {
     }
 
     setState(() {
-      currentMood = selectedMood; // Обновляем текущее настроение на экране
+      currentMood = selectedMood;
       selectedMood = "";
       note = "";
     });
   }
+
+  String _mapSentimentToMood(double score, double magnitude) {
+    if (score < -0.5 && magnitude >= 1.0) {
+      return "Грусть";
+    }
+    if (score >= 0.5 && magnitude < 3.0) {
+      return "Радость";
+    }
+    if (score <= -0.3 && magnitude >= 0.5 && magnitude < 1.5) {
+      return "Усталость";
+    }
+    return "Спокойствие";
+  }
+
 
   @override
   Widget build(BuildContext context) {

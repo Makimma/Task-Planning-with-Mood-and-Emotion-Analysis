@@ -23,7 +23,6 @@ class TranslationService {
       final jsonResponse = jsonDecode(response.body);
       return jsonResponse["data"]["translations"][0]["translatedText"];
     } else {
-      print("❌ Ошибка перевода: ${response.body}");
       return null;
     }
   }

@@ -12,11 +12,11 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  List<Map<String, dynamic>> allTasks = [];  // 🔹 Все задачи
-  List<Map<String, dynamic>> filteredTasks = []; // 🔹 Отфильтрованные задачи
+  List<Map<String, dynamic>> allTasks = [];
+  List<Map<String, dynamic>> filteredTasks = [];
 
-  Set<String> selectedPriorities = {}; // Выбранные приоритеты (множественный выбор)
-  double minLoad = 1, maxLoad = 5; // Диапазон эмоциональной нагрузки
+  Set<String> selectedPriorities = {};
+  double minLoad = 1, maxLoad = 5;
 
 
   String selectedCategory = "Все категории";
@@ -61,38 +61,18 @@ class _TasksScreenState extends State<TasksScreen> {
           ],
           title: Row(
             children: [
-              SizedBox(width: 16), // ✅ Отступ от края экрана
+              SizedBox(width: 16), // Отступ от края экрана
               AppDropdown(
                 selectedOption: selectedSortOption,
                 options: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
-                maxWidth: 140, // ✅ Ограничиваем ширину
+                maxWidth: 140, // Ограничиваем ширину
                 onOptionSelected: (value) {
                   setState(() {
                     selectedSortOption = value;
                   });
                 },
               ),
-              SizedBox(width: 10), // ✅ Отступ перед вторым выпадающим списком
-              // Flexible(
-              //   child: DropdownButton<String>(
-              //     value: taskCategories.contains(selectedCategory)
-              //         ? selectedCategory
-              //         : "Все категории",
-              //     items: taskCategories.toSet().map((String value) {
-              //       return DropdownMenuItem<String>(
-              //         value: value,
-              //         child: Text(value,
-              //             overflow: TextOverflow
-              //                 .ellipsis),
-              //       );
-              //     }).toList(),
-              //     onChanged: (value) {
-              //       setState(() {
-              //         selectedCategory = value!;
-              //       });
-              //     },
-              //   ),
-              // ),
+              SizedBox(width: 10),
             ],
           ),
         ),
@@ -136,7 +116,7 @@ class _TasksScreenState extends State<TasksScreen> {
   void _applyFilters() {
     setState(() {
       if (selectedPriorities.isEmpty && selectedCategory == "Все категории" && minLoad == 1 && maxLoad == 5) {
-        filteredTasks = List.from(allTasks); // Если фильтры выключены, показываем все задачи
+        filteredTasks = List.from(allTasks);
         return;
       }
 
@@ -160,8 +140,8 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   void _showFilterDialog(BuildContext context) {
-    Set<String> tempSelectedPriorities = Set.from(selectedPriorities); // Локальная копия
-    double tempMinLoad = minLoad, tempMaxLoad = maxLoad; // Локальная копия
+    Set<String> tempSelectedPriorities = Set.from(selectedPriorities);
+    double tempMinLoad = minLoad, tempMaxLoad = maxLoad;
 
     showDialog(
       context: context,
@@ -173,7 +153,6 @@ class _TasksScreenState extends State<TasksScreen> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Фильтр по категории
                   DropdownButtonFormField<String>(
                     value: selectedCategory,
                     items: ["Все категории", "Работа", "Учёба", "Финансы", "Здоровье и спорт", "Личное"]
@@ -192,7 +171,7 @@ class _TasksScreenState extends State<TasksScreen> {
                   ),
                   SizedBox(height: 10),
 
-                  // Фильтр по приоритету (множественный выбор)
+                  // Фильтр по приоритету
                   Text("Приоритет:", style: TextStyle(fontWeight: FontWeight.bold)),
                   Wrap(
                     spacing: 8.0,
@@ -214,7 +193,7 @@ class _TasksScreenState extends State<TasksScreen> {
                   ),
                   SizedBox(height: 10),
 
-                  // Фильтр по эмоциональной нагрузке (слайдер)
+                  // Фильтр по эмоциональной нагрузке
                   Text("Эмоциональная нагрузка:", style: TextStyle(fontWeight: FontWeight.bold)),
                   RangeSlider(
                     values: RangeValues(tempMinLoad, tempMaxLoad),
@@ -234,7 +213,7 @@ class _TasksScreenState extends State<TasksScreen> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context); // Закрываем диалог без применения
+                    Navigator.pop(context);
                   },
                   child: Text("Отмена"),
                 ),
@@ -245,8 +224,8 @@ class _TasksScreenState extends State<TasksScreen> {
                       minLoad = tempMinLoad;
                       maxLoad = tempMaxLoad;
                     });
-                    _applyFilters(); // Применяем фильтр
-                    Navigator.pop(context); // Закрываем диалог
+                    _applyFilters();
+                    Navigator.pop(context);
                   },
                   child: Text("Применить"),
                 ),
@@ -379,8 +358,7 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _addTask(String title, String comment, String category, String priority,
-      int emotionalLoad, DateTime deadline) {
+  void _addTask(String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline) {
     if (title.isEmpty) return;
 
     FirebaseFirestore.instance
@@ -399,8 +377,7 @@ class _TasksScreenState extends State<TasksScreen> {
     });
   }
 
-  void _showDateTimePicker(BuildContext context, DateTime initialDate,
-      Function(DateTime) onDateTimeSelected) {
+  void _showDateTimePicker(BuildContext context, DateTime initialDate, Function(DateTime) onDateTimeSelected) {
     DateTime now = DateTime.now();
     DateTime minDateTime =
         DateTime(now.year, now.month, now.day, now.hour, now.minute);
