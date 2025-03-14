@@ -95,7 +95,7 @@ class _MoodScreenState extends State<MoodScreen> {
     }
 
     setState(() {
-      currentMood = selectedMood; // ✅ Обновляем текущее настроение на экране
+      currentMood = selectedMood; // Обновляем текущее настроение на экране
       selectedMood = "";
       note = "";
     });
@@ -135,7 +135,11 @@ class _MoodScreenState extends State<MoodScreen> {
               selectedMood: selectedMood,
               onMoodSelected: (mood) {
                 setState(() {
-                  selectedMood = mood;
+                  if (selectedMood == mood) {
+                    selectedMood = ""; // Снимаем выбор, если нажали повторно
+                  } else {
+                    selectedMood = mood;
+                  }
                 });
               },
             ),
