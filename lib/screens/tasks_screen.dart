@@ -25,7 +25,6 @@ class _TasksScreenState extends State<TasksScreen> {
   Set<String> selectedPriorities = {};
   double minLoad = 1, maxLoad = 5;
 
-
   String selectedCategory = "Все категории";
   bool filterByDeadline = false;
   bool filterByPriority = false;
@@ -72,7 +71,8 @@ class _TasksScreenState extends State<TasksScreen> {
                 selectedOption: selectedSortOption,
                 options: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
                 maxWidth: 140,
-                onOptionSelected: (value) => setState(() => selectedSortOption = value),
+                onOptionSelected: (value) =>
+                    setState(() => selectedSortOption = value),
               ),
               SizedBox(width: 10),
             ],
@@ -107,7 +107,8 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _analyzeTaskCategory(String title, String comment, Function(String) updateCategory) async {
+  void _analyzeTaskCategory(
+      String title, String comment, Function(String) updateCategory) async {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
       if (connectivityResult == ConnectivityResult.none) {
@@ -121,36 +122,55 @@ class _TasksScreenState extends State<TasksScreen> {
         return;
       }
 
-    String fullText = "$title. $comment";
+      String fullText = "$title. $comment";
 
-    // Проверяем, достаточно ли слов для анализа
-    int wordCount = fullText.split(RegExp(r'\s+')).length;
-    if (wordCount < 20) {
+      // Проверяем, достаточно ли слов для анализа
+      int wordCount = fullText.split(RegExp(r'\s+')).length;
+      if (wordCount < 20) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Добавьте больше деталей, минимум 20 слов")),
+        );
+        return;
+      }
+
+      // Переводим текст перед анализом
+      String? translatedText =
+          await TranslationService.translateText(fullText, "en");
+      if (translatedText == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Ошибка перевода текста")),
+        );
+        return;
+      }
+
+      // Анализируем категорию
+      String? category = await CategoryService.classifyText(translatedText);
+
+      if (category != null) {
+        category = taskCategories.contains(category) ? category : "Другое";
+      } else {
+        category = "Другое";
+      }
+
+      updateCategory(category);
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Добавьте больше деталей, минимум 20 слов")),
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green),
+              SizedBox(width: 8),
+              Text(
+                "Категория определена: $category",
+                style: TextStyle(color: Colors.black87),
+              ),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.green[100],
+        ),
       );
-      return;
-    }
-
-    // Переводим текст перед анализом
-    String? translatedText = await TranslationService.translateText(fullText, "en");
-    if (translatedText == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Ошибка перевода текста")),
-      );
-      return;
-    }
-
-    // Анализируем категорию
-    String? category = await CategoryService.classifyText(translatedText);
-
-    if (category != null) {
-      category = taskCategories.contains(category) ? category : "Другое";
-    } else {
-      category = "Другое";
-    }
-
-    updateCategory(category);
     } on SocketException catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -186,7 +206,8 @@ class _TasksScreenState extends State<TasksScreen> {
     return 5;
   }
 
-  void _analyzeTaskEmotionalLoad(String title, String comment, Function(int) updateLoad) async {
+  void _analyzeTaskEmotionalLoad(
+      String title, String comment, Function(int) updateLoad) async {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
       if (connectivityResult == ConnectivityResult.none) {
@@ -200,23 +221,42 @@ class _TasksScreenState extends State<TasksScreen> {
         return;
       }
 
-    String fullText = "$title. $comment";
+      String fullText = "$title. $comment";
 
-    // Анализируем тональность текста
-    Map<String, double>? sentiment = await NaturalLanguageService.analyzeSentiment(fullText);
-    if (sentiment == null) {
+      // Анализируем тональность текста
+      Map<String, double>? sentiment =
+          await NaturalLanguageService.analyzeSentiment(fullText);
+      if (sentiment == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Ошибка анализа эмоциональной нагрузки")),
+        );
+        return;
+      }
+
+      double score = sentiment["score"]!;
+      double magnitude = sentiment["magnitude"]!;
+      int emotionalLoad = _convertSentimentToLoad(score, magnitude);
+
+      // Обновляем UI слайдера в модальном окне
+      updateLoad(emotionalLoad);
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Ошибка анализа эмоциональной нагрузки")),
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.emoji_emotions, color: Colors.black),
+              SizedBox(width: 8),
+              Text(
+                "Нагрузка определена: уровень $emotionalLoad",
+                style: TextStyle(color: Colors.black87),
+              ),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.blue[100],
+        ),
       );
-      return;
-    }
-
-    double score = sentiment["score"]!;
-    double magnitude = sentiment["magnitude"]!;
-    int emotionalLoad = _convertSentimentToLoad(score, magnitude);
-
-    // Обновляем UI слайдера в модальном окне
-    updateLoad(emotionalLoad);
     } on SocketException catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -269,7 +309,10 @@ class _TasksScreenState extends State<TasksScreen> {
 
   void _applyFilters() {
     setState(() {
-      if (selectedPriorities.isEmpty && selectedCategory == "Все категории" && minLoad == 1 && maxLoad == 5) {
+      if (selectedPriorities.isEmpty &&
+          selectedCategory == "Все категории" &&
+          minLoad == 1 &&
+          maxLoad == 5) {
         filteredTasks = List.from(allTasks);
         return;
       }
@@ -309,8 +352,14 @@ class _TasksScreenState extends State<TasksScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     value: selectedCategory,
-                    items: ["Все категории", "Работа", "Учёба", "Финансы", "Здоровье и спорт", "Личное"]
-                        .map((String value) {
+                    items: [
+                      "Все категории",
+                      "Работа",
+                      "Учёба",
+                      "Финансы",
+                      "Здоровье и спорт",
+                      "Личное"
+                    ].map((String value) {
                       return DropdownMenuItem<String>(
                         value: value,
                         child: Text(value),
@@ -326,7 +375,8 @@ class _TasksScreenState extends State<TasksScreen> {
                   SizedBox(height: 10),
 
                   // Фильтр по приоритету
-                  Text("Приоритет:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text("Приоритет:",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   Wrap(
                     spacing: 8.0,
                     children: ["low", "medium", "high"].map((priority) {
@@ -348,13 +398,15 @@ class _TasksScreenState extends State<TasksScreen> {
                   SizedBox(height: 10),
 
                   // Фильтр по эмоциональной нагрузке
-                  Text("Эмоциональная нагрузка:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text("Эмоциональная нагрузка:",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   RangeSlider(
                     values: RangeValues(tempMinLoad, tempMaxLoad),
                     min: 1,
                     max: 5,
                     divisions: 4,
-                    labels: RangeLabels(tempMinLoad.toString(), tempMaxLoad.toString()),
+                    labels: RangeLabels(
+                        tempMinLoad.toString(), tempMaxLoad.toString()),
                     onChanged: (values) {
                       setState(() {
                         tempMinLoad = values.start;
@@ -439,7 +491,8 @@ class _TasksScreenState extends State<TasksScreen> {
                       onChanged: (value) => title = value,
                     ),
                     TextFormField(
-                      decoration: InputDecoration(labelText: "Комментарий (дополнительно)"),
+                      decoration: InputDecoration(
+                          labelText: "Комментарий (дополнительно)"),
                       maxLength: 512,
                       onChanged: (value) => comment = value,
                     ),
@@ -449,14 +502,18 @@ class _TasksScreenState extends State<TasksScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         DropdownButtonFormField<String>(
-                          value: taskCategories.contains(category) ? category : "Другое", // ✅ Гарантированно в списке
-                          items: taskCategories.toSet().map((String value) { // ✅ Убираем дубликаты
+                          value: taskCategories.contains(category)
+                              ? category
+                              : "Другое", // ✅ Гарантированно в списке
+                          items: taskCategories.toSet().map((String value) {
+                            // ✅ Убираем дубликаты
                             return DropdownMenuItem<String>(
                               value: value,
                               child: Text(value),
                             );
                           }).toList(),
-                          onChanged: (value) => setState(() => category = value!),
+                          onChanged: (value) =>
+                              setState(() => category = value!),
                           decoration: InputDecoration(labelText: "Категория"),
                         ),
                         ElevatedButton(
@@ -506,7 +563,8 @@ class _TasksScreenState extends State<TasksScreen> {
 
                     ElevatedButton(
                       onPressed: () {
-                        _showDateTimePicker(context, deadline, (DateTime newDate) {
+                        _showDateTimePicker(context, deadline,
+                            (DateTime newDate) {
                           setState(() {
                             deadline = newDate;
                           });
@@ -527,7 +585,8 @@ class _TasksScreenState extends State<TasksScreen> {
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  _addTask(title, comment, category, priority, emotionalLoad, deadline);
+                  _addTask(title, comment, category, priority, emotionalLoad,
+                      deadline);
                   Navigator.pop(context);
                 }
               },
@@ -539,7 +598,8 @@ class _TasksScreenState extends State<TasksScreen> {
     ).then((_) => setState(() => _fetchTasks("active")));
   }
 
-  void _addTask(String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline) {
+  void _addTask(String title, String comment, String category, String priority,
+      int emotionalLoad, DateTime deadline) {
     if (title.isEmpty) return;
 
     FirebaseFirestore.instance
@@ -558,7 +618,8 @@ class _TasksScreenState extends State<TasksScreen> {
     });
   }
 
-  void _showDateTimePicker(BuildContext context, DateTime initialDate, Function(DateTime) onDateTimeSelected) {
+  void _showDateTimePicker(BuildContext context, DateTime initialDate,
+      Function(DateTime) onDateTimeSelected) {
     DateTime now = DateTime.now();
     DateTime minDateTime =
         DateTime(now.year, now.month, now.day, now.hour, now.minute);
@@ -612,12 +673,13 @@ class _TasksScreenState extends State<TasksScreen> {
           .where('status', isEqualTo: status)
           .snapshots(),
       builder: (context, snapshot) {
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
 
-        if (!snapshot.hasData || snapshot.data == null || snapshot.data!.docs.isEmpty) {
+        if (!snapshot.hasData ||
+            snapshot.data == null ||
+            snapshot.data!.docs.isEmpty) {
           return Center(child: Text("Нет задач"));
         }
 
@@ -650,17 +712,17 @@ class _TasksScreenState extends State<TasksScreen> {
 
         // Сортируем задачи
         filteredTasks.sort((a, b) {
-            if (selectedSortOption == "Дедлайн") {
-              return (a['deadline'] as Timestamp)
-                  .compareTo(b['deadline'] as Timestamp);
-            } else if (selectedSortOption == "Приоритет") {
-              Map<String, int> priorityOrder = {"high": 3, "medium": 2, "low": 1};
-              return priorityOrder[a['priority']]!
-                  .compareTo(priorityOrder[b['priority']]!);
-            } else if (selectedSortOption == "Эмоциональная нагрузка") {
-              return a['emotionalLoad'].compareTo(b['emotionalLoad']);
-            }
-            return 0;
+          if (selectedSortOption == "Дедлайн") {
+            return (a['deadline'] as Timestamp)
+                .compareTo(b['deadline'] as Timestamp);
+          } else if (selectedSortOption == "Приоритет") {
+            Map<String, int> priorityOrder = {"high": 3, "medium": 2, "low": 1};
+            return priorityOrder[a['priority']]!
+                .compareTo(priorityOrder[b['priority']]!);
+          } else if (selectedSortOption == "Эмоциональная нагрузка") {
+            return a['emotionalLoad'].compareTo(b['emotionalLoad']);
+          }
+          return 0;
         });
 
         return ListView.builder(
@@ -677,14 +739,14 @@ class _TasksScreenState extends State<TasksScreen> {
                   child: Icon(Icons.delete, color: Colors.white, size: 30),
                 ),
                 confirmDismiss: (direction) async {
-                  return await TaskActions.showDeleteConfirmation(context, task['id']);
+                  return await TaskActions.showDeleteConfirmation(
+                      context, task['id']);
                 },
                 child: TaskCard(
                   task: task,
                   onEdit: () => TaskActions.showEditTaskDialog(context, task),
                   onComplete: () => TaskActions.completeTask(task['id']),
-                )
-            );
+                ));
           },
         );
       },
