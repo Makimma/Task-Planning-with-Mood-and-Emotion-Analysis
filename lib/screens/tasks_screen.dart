@@ -122,7 +122,8 @@ class _TasksScreenState extends State<TasksScreen> {
         return;
       }
 
-      String fullText = "$title. $comment";
+      String formattedTitle = title.trim().endsWith('.') ? title.trim() : "${title.trim()}.";
+      String fullText = "$formattedTitle $comment";
 
       // Проверяем, достаточно ли слов для анализа
       int wordCount = fullText.split(RegExp(r'\s+')).length;
@@ -221,7 +222,8 @@ class _TasksScreenState extends State<TasksScreen> {
         return;
       }
 
-      String fullText = "$title. $comment";
+      String formattedTitle = title.trim().endsWith('.') ? title.trim() : "${title.trim()}.";
+      String fullText = "$formattedTitle $comment";
 
       // Анализируем тональность текста
       Map<String, double>? sentiment =
