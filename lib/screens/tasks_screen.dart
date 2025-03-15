@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -104,6 +108,19 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   void _analyzeTaskCategory(String title, String comment, Function(String) updateCategory) async {
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult == ConnectivityResult.none) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("⚠️ Нет интернет-соединения"),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
     String fullText = "$title. $comment";
 
     // Проверяем, достаточно ли слов для анализа
@@ -128,13 +145,37 @@ class _TasksScreenState extends State<TasksScreen> {
     String? category = await CategoryService.classifyText(translatedText);
 
     if (category != null) {
-      // 🔹 Убираем дубликаты, если вдруг API возвращает категорию, уже существующую в списке
       category = taskCategories.contains(category) ? category : "Другое";
     } else {
       category = "Другое";
     }
 
     updateCategory(category);
+    } on SocketException catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("📡 Ошибка подключения к серверу"),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } on TimeoutException catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⏳ Превышено время ожидания"),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Ошибка: ${e.toString().split(':').first}"),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   int _convertSentimentToLoad(double score, double magnitude) {
@@ -146,6 +187,19 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   void _analyzeTaskEmotionalLoad(String title, String comment, Function(int) updateLoad) async {
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult == ConnectivityResult.none) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("⚠️ Нет интернет-соединения"),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
     String fullText = "$title. $comment";
 
     // Анализируем тональность текста
@@ -163,6 +217,31 @@ class _TasksScreenState extends State<TasksScreen> {
 
     // Обновляем UI слайдера в модальном окне
     updateLoad(emotionalLoad);
+    } on SocketException catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("📡 Ошибка подключения к серверу"),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } on TimeoutException catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⏳ Превышено время ожидания"),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Ошибка: ${e.toString().split(':').first}"),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _fetchTasks(String status) async {

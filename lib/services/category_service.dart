@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class CategoryService {
@@ -98,11 +100,12 @@ class CategoryService {
       }
     };
 
-    final response = await http.post(
-      Uri.parse(_baseUrl),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(requestBody),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(requestBody),
+      ).timeout(Duration(seconds: 10));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -113,7 +116,13 @@ class CategoryService {
         return _mapGoogleCategory(googleCategory);
       }
     }
-
+    } on SocketException catch (_) {
+      throw Exception("Нет подключения к интернету");
+    } on TimeoutException catch (_) {
+      throw Exception("Превышено время ожидания");
+    } catch (e) {
+      throw Exception("Ошибка: ${e.toString()}");
+    }
     return 'Другое';
   }
 }
