@@ -565,8 +565,7 @@ class _TasksScreenState extends State<TasksScreen> {
 
                     ElevatedButton(
                       onPressed: () {
-                        _showDateTimePicker(context, deadline,
-                            (DateTime newDate) {
+                        TaskActions.showDateTimePicker(context, deadline, (DateTime newDate) {
                           setState(() {
                             deadline = newDate;
                           });
@@ -618,52 +617,6 @@ class _TasksScreenState extends State<TasksScreen> {
       'status': 'active',
       'createdAt': Timestamp.now(),
     });
-  }
-
-  void _showDateTimePicker(BuildContext context, DateTime initialDate,
-      Function(DateTime) onDateTimeSelected) {
-    DateTime now = DateTime.now();
-    DateTime minDateTime =
-        DateTime(now.year, now.month, now.day, now.hour, now.minute);
-    DateTime selectedDateTime =
-        initialDate.isBefore(minDateTime) ? minDateTime : initialDate;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          height: 350,
-          padding: EdgeInsets.only(bottom: 20),
-          child: Column(
-            children: [
-              Expanded(
-                child: CupertinoDatePicker(
-                  mode: CupertinoDatePickerMode.dateAndTime,
-                  initialDateTime: selectedDateTime,
-                  minimumDate: minDateTime,
-                  maximumDate: DateTime(2100),
-                  use24hFormat: true,
-                  onDateTimeChanged: (DateTime newDateTime) {
-                    selectedDateTime = newDateTime;
-                  },
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.only(bottom: 10),
-                child: ElevatedButton(
-                  onPressed: () {
-                    onDateTimeSelected(selectedDateTime);
-                    Navigator.pop(context);
-                  },
-                  child: Text("Готово"),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   Widget _buildTaskList(String status) {

@@ -4,8 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class TaskActions {
-  static Future<bool?> showDeleteConfirmation(
-      BuildContext context, String taskId) async {
+  static Future<bool?> showDeleteConfirmation(BuildContext context, String taskId) async {
     return await showDialog(
       context: context,
       builder: (context) {
@@ -119,7 +118,7 @@ class TaskActions {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        _showDateTimePicker(context, deadline, (DateTime newDate) {
+                        showDateTimePicker(context, deadline, (DateTime newDate) {
                           setState(() {
                             deadline = newDate;
                           });
@@ -152,9 +151,7 @@ class TaskActions {
     );
   }
 
-  static void updateTask(String taskId, String title, String comment,
-      String category, String priority, int emotionalLoad,
-      DateTime deadline, BuildContext context) {
+  static void updateTask(String taskId, String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline, BuildContext context) {
     FirebaseFirestore.instance
         .collection('users')
         .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -195,8 +192,7 @@ class TaskActions {
         .delete();
   }
 
-  static void _showDateTimePicker(
-      BuildContext context, DateTime initialDate, Function(DateTime) onDateTimeSelected) {
+  static void showDateTimePicker(BuildContext context, DateTime initialDate, Function(DateTime) onDateTimeSelected) {
     DateTime now = DateTime.now();
     DateTime minDateTime =
     DateTime(now.year, now.month, now.day, now.hour, now.minute);
