@@ -1,10 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../constants/task_constants.dart';
+import 'task_repository.dart';
+import 'notification_service.dart';
 
 class TaskActions {
-  static Future<bool?> showDeleteConfirmation(BuildContext context, String taskId) async {
+  static final User? user = TaskRepository.getCurrentUser();
+
+  static Future<bool?> showDeleteConfirmation(
+      BuildContext context, String taskId) async {
     return await showDialog(
       context: context,
       builder: (context) {
@@ -14,13 +20,16 @@ class TaskActions {
               "Вы уверены, что хотите удалить эту задачу? Действие нельзя отменить."),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false), // ❌ Отмена
+              onPressed: () => Navigator.pop(context, false), // Отмена
               child: Text("Отмена"),
             ),
             ElevatedButton(
-              onPressed: () {
-                _deleteTask(taskId);
-                Navigator.pop(context, true); // ✅ Подтверждение
+              onPressed: () async {
+                try {
+                  TaskActions.deleteTask(context, taskId);
+                } finally {
+                  Navigator.pop(context, true);
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: Text("Удалить", style: TextStyle(color: Colors.white)),
@@ -31,19 +40,8 @@ class TaskActions {
     );
   }
 
-  static void _deleteTask(String taskId) {
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .delete()
-        .then((_) {
-    }).catchError((error) {;
-    });
-  }
-
-  static void showEditTaskDialog(BuildContext context, Map<String, dynamic> task) {
+  static void showEditTaskDialog(
+      BuildContext context, Map<String, dynamic> task) {
     final _formKey = GlobalKey<FormState>();
     String title = task['title'];
     String comment = task['comment'] ?? "";
@@ -85,8 +83,12 @@ class TaskActions {
                       onChanged: (value) => comment = value,
                     ),
                     DropdownButtonFormField<String>(
-                      value: category,
-                      items: ["Работа", "Учёба", "Финансы", "Здоровье", "Личное"]
+                      value: TaskConstants.categories.contains(category)
+                          ? category
+                          : "Другое",
+                      items: TaskConstants.categories
+                          .sublist(1)
+                          .toSet()
                           .map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
@@ -118,7 +120,8 @@ class TaskActions {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        showDateTimePicker(context, deadline, (DateTime newDate) {
+                        showDateTimePicker(context, deadline,
+                            (DateTime newDate) {
                           setState(() {
                             deadline = newDate;
                           });
@@ -142,6 +145,7 @@ class TaskActions {
                   updateTask(task['id'], title, comment, category, priority,
                       emotionalLoad, deadline, context);
                 }
+                if (context.mounted) Navigator.pop(context);
               },
               child: Text("Сохранить"),
             ),
@@ -151,53 +155,91 @@ class TaskActions {
     );
   }
 
-  static void updateTask(String taskId, String title, String comment, String category, String priority, int emotionalLoad, DateTime deadline, BuildContext context) {
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .update({
-      'title': title,
-      'comment': comment,
-      'category': category,
-      'priority': priority,
-      'emotionalLoad': emotionalLoad,
-      'deadline': Timestamp.fromDate(deadline),
-    });
-
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+  static void updateTask(
+    String taskId,
+    String title,
+    String comment,
+    String category,
+    String priority,
+    int emotionalLoad,
+    DateTime deadline,
+    BuildContext context,
+  ) async {
+    try {
+      await TaskRepository.updateTask(
+        taskId: taskId,
+        title: title,
+        comment: comment,
+        category: category,
+        priority: priority,
+        emotionalLoad: emotionalLoad,
+        deadline: deadline,
+      );
+    } catch (e) {
+      NotificationService.showErrorSnackbar(
+          context, "Ошибка обновления: ${e.toString()}");
     }
   }
 
-  static void completeTask(String taskId) {
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .update({
-      'status': 'completed',
-      'completedAt': Timestamp.now(),
-    });
+  static void completeTask(String taskId, BuildContext context) async {
+    try {
+      await TaskRepository.completeTask(taskId);
+      NotificationService.showSuccessSnackbar(context, "Задача выполнена!");
+    } catch (e) {
+      NotificationService.showErrorSnackbar(
+          context, "Ошибка завершения: ${e.toString()}");
+    }
   }
 
-  static void deleteTask(String taskId) {
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .delete();
+  static Future<void> addTask({
+    required BuildContext context,
+    required String title,
+    required String comment,
+    required String category,
+    required String priority,
+    required int emotionalLoad,
+    required DateTime deadline,
+  }) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) throw Exception('Пользователь не авторизован');
+
+      await TaskRepository.addTask(
+        title: title,
+        comment: comment,
+        category: category,
+        priority: priority,
+        emotionalLoad: emotionalLoad,
+        deadline: deadline,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Задача успешно создана')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка: ${e.toString()}')),
+      );
+      rethrow;
+    }
   }
 
-  static void showDateTimePicker(BuildContext context, DateTime initialDate, Function(DateTime) onDateTimeSelected) {
+  static Future<void> deleteTask(BuildContext context, String taskId) async {
+    try {
+      await TaskRepository.deleteTask(taskId);
+    } catch (e) {
+      NotificationService.showErrorSnackbar(
+          context, "Ошибка удаления: ${e.toString()}");
+    }
+  }
+
+  static void showDateTimePicker(BuildContext context, DateTime initialDate,
+      Function(DateTime) onDateTimeSelected) {
     DateTime now = DateTime.now();
     DateTime minDateTime =
-    DateTime(now.year, now.month, now.day, now.hour, now.minute);
+        DateTime(now.year, now.month, now.day, now.hour, now.minute);
     DateTime selectedDateTime =
-    initialDate.isBefore(minDateTime) ? minDateTime : initialDate;
+        initialDate.isBefore(minDateTime) ? minDateTime : initialDate;
 
     showModalBottomSheet(
       context: context,

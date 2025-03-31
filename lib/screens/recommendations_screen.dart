@@ -155,7 +155,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
             child: TaskCard(
               task: task,
               onEdit: () => TaskActions.showEditTaskDialog(context, task),
-              onComplete: () => TaskActions.completeTask(task['id']),
+              onComplete: () => TaskActions.completeTask(task['id'], context),
             )
             );
           },
