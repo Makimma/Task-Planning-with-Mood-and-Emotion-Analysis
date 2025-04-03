@@ -33,16 +33,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   void _fetchTaskCounts() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    User? user = TaskRepository.getCurrentUser();
 
     DateTime now = DateTime.now();
-    DateTime startDate = selectedPeriod == "Неделя"
-        ? now.subtract(Duration(days: 7))
-        : now.subtract(Duration(days: 30));
+    DateTime today = DateTime(now.year, now.month, now.day);
 
-    int weekCount = await _getCompletedTasks(user.uid, startDate);
-    int monthCount = await _getCompletedTasks(user.uid, DateTime(now.year, now.month, 1));
+    DateTime startDate = selectedPeriod == "Неделя"
+        ? today.subtract(Duration(days: 7))
+        : today.subtract(Duration(days: 30));
+
+    int weekCount = selectedPeriod == "Неделя"
+        ? await _getCompletedTasks(user.uid, startDate)
+        : 0;
+
+    int monthCount = selectedPeriod == "Месяц"
+        ? await _getCompletedTasks(user.uid, startDate)
+        : 0;
 
     final categoryData = await _getCategoryStats(user.uid, startDate);
     final priorityData = await _getPriorityStats(user.uid, startDate);
@@ -50,19 +56,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
     setState(() {
       tasksThisWeek = weekCount;
       tasksThisMonth = monthCount;
-
       categoryCounts = categoryData;
       priorityCounts = priorityData;
     });
   }
 
   Future<int> _getCompletedTasks(String userId, DateTime startDate) async {
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('tasks')
-        .where('status', isEqualTo: 'completed')
-        .get();
+    QuerySnapshot snapshot = await TaskRepository.getTasksByStatus("completed");
 
     return snapshot.docs.where((doc) {
       Timestamp completedAt = doc['completedAt'] as Timestamp;
