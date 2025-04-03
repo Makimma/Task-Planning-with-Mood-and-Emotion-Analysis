@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_appp/services/task_repository.dart';
 import '../widgets/mood_chart.dart';
 import '../widgets/period_selector.dart';
 import '../widgets/report_card.dart';
+import '../widgets/task_chart.dart';
 
 class ReportsScreen extends StatefulWidget {
   @override
@@ -16,8 +18,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   int tasksThisMonth = 0;
   List<Map<String, dynamic>> moodData = [];
   String dominantMood = "Нет данных";
+
   double positiveDaysPercentage = 0.0;
   double negativeDaysPercentage = 0.0;
+
+  Map<String, int> categoryCounts = {};
+  Map<String, int> priorityCounts = {};
 
   @override
   void initState() {
@@ -36,12 +42,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
         : now.subtract(Duration(days: 30));
 
     int weekCount = await _getCompletedTasks(user.uid, startDate);
-    int monthCount =
-    await _getCompletedTasks(user.uid, DateTime(now.year, now.month, 1));
+    int monthCount = await _getCompletedTasks(user.uid, DateTime(now.year, now.month, 1));
+
+    final categoryData = await _getCategoryStats(user.uid, startDate);
+    final priorityData = await _getPriorityStats(user.uid, startDate);
 
     setState(() {
       tasksThisWeek = weekCount;
       tasksThisMonth = monthCount;
+
+      categoryCounts = categoryData;
+      priorityCounts = priorityData;
     });
   }
 
@@ -223,24 +234,75 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildMoodReport() {
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: moodData.isEmpty
-          ? Center(child: Text("Нет данных за этот период"))
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "График настроения:",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 10),
-                Flexible(
-                  fit: FlexFit.loose,
-                  child: MoodChart(moodData: moodData),
-                ),
-              ],
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "История настроения:",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: 200,
+                maxHeight: 300,
+              ),
+              child: moodData.isEmpty
+                  ? Center(child: Text("Нет данных за этот период"))
+                  : MoodChart(moodData: moodData),
+            ),
+
+            SizedBox(height: 40),
+            Text(
+              "Распределение задач:",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 20),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: 300,
+                maxHeight: 500,
+              ),
+              child: categoryCounts.isEmpty && priorityCounts.isEmpty
+                  ? Center(child: Text("Нет данных о задачах"))
+                  : TaskCharts(
+                categoryCounts: categoryCounts,
+                priorityCounts: priorityCounts,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<Map<String, int>> _getCategoryStats(String userId, DateTime startDate) async {
+    final snapshot = await TaskRepository.getTasksByStatus("completed");
+
+    final counts = <String, int>{};
+    for (final doc in snapshot.docs) {
+      final completedAt = doc['completedAt'] as Timestamp?;
+      if (completedAt != null && completedAt.toDate().isAfter(startDate)) {
+        final category = doc['category'];
+        counts[category] = (counts[category] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  Future<Map<String, int>> _getPriorityStats(String userId, DateTime startDate) async {
+    final snapshot = await TaskRepository.getTasksByStatus("completed");
+
+    final counts = <String, int>{};
+    for (final doc in snapshot.docs) {
+      final completedAt = doc['completedAt'] as Timestamp?;
+      if (completedAt != null && completedAt.toDate().isAfter(startDate)) {
+        final priority = doc['priority'];
+        counts[priority] = (counts[priority] ?? 0) + 1;
+      }
+    }
+    return counts;
   }
 }

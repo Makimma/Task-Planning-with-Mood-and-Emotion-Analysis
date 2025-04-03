@@ -110,4 +110,28 @@ class TaskRepository {
           .where('status', isEqualTo: status)
           .get();
   }
+
+  static Stream<QuerySnapshot> getAllTasksStream() {
+    final userId = _getCurrentUserId();
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('tasks')
+        .snapshots();
+  }
+
+  static Future<QuerySnapshot> queryTasks({
+    required String field,
+    required dynamic value,
+    int limit = 100,
+  }) {
+    final userId = _getCurrentUserId();
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('tasks')
+        .where(field, isEqualTo: value)
+        .limit(limit)
+        .get();
+  }
 }
