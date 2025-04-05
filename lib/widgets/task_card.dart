@@ -80,7 +80,10 @@ class TaskCard extends StatelessWidget {
   }
 
   String _formatTimestamp(DateTime date) {
-    return "${date.day}.${date.month}.${date.year} ${date.hour}:${date.minute}";
+    final local = date.toLocal(); // приводим к локальному времени
+    final hours = local.hour.toString().padLeft(2, '0');
+    final minutes = local.minute.toString().padLeft(2, '0');
+    return "${local.day}.${local.month}.${local.year} $hours:$minutes";
   }
 
   Color _getTaskColor(int emotionalLoad) {

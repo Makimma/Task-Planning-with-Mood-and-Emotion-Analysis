@@ -210,7 +210,7 @@ class TaskActions {
         category: category,
         priority: priority,
         emotionalLoad: emotionalLoad,
-        deadline: deadline,
+        deadline: deadline.toUtc(),
       );
 
       if (context.mounted) {
