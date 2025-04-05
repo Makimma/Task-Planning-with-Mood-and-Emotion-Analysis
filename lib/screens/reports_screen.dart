@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,11 +26,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Map<String, int> categoryCounts = {};
   Map<String, int> priorityCounts = {};
 
+  Map<String, int> moodProductivity = {};
+
   @override
   void initState() {
     super.initState();
     _fetchTaskCounts();
     _fetchMoodHistory();
+    _fetchMoodProductivity();
   }
 
   void _fetchTaskCounts() async {
@@ -144,7 +148,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -166,6 +169,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   selectedPeriod = value;
                   _fetchTaskCounts();
                   _fetchMoodHistory();
+                  _fetchMoodProductivity();
                 });
               },
             ),
@@ -256,7 +260,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
             SizedBox(height: 40),
             Text(
-              "Распределение задач:",
+              "Распределение выполненных задач:",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 20),
@@ -272,6 +276,31 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 priorityCounts: priorityCounts,
               ),
             ),
+            SizedBox(height: 20),
+            Text(
+              "Распределение выполненных задач по настроению:",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: 180,
+                maxHeight: 240,
+              ),
+              child: moodProductivity.isEmpty
+                  ? Center(child: Text("Нет данных для анализа"))
+                  : _buildMoodProductivityChart(),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildLegend("Радость", Colors.green),
+                _buildLegend("Спокойствие", Colors.blue),
+                _buildLegend("Усталость", Colors.orange),
+                _buildLegend("Грусть", Colors.purple),
+              ],
+            ),
+            SizedBox(height: 10),
           ],
         ),
       ),
@@ -305,4 +334,101 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
     return counts;
   }
+
+  Widget _buildLegend(String mood, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 12, height: 12, color: color),
+        SizedBox(width: 4),
+        Text(mood, style: TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
+  Future<void> _fetchMoodProductivity() async {
+    User? user = TaskRepository.getCurrentUser();
+
+    DateTime now = DateTime.now();
+    DateTime startDate = selectedPeriod == "Неделя"
+        ? now.subtract(Duration(days: 7))
+        : now.subtract(Duration(days: 30));
+
+    QuerySnapshot tasksSnapshot = await TaskRepository.getTasksByStatus("completed");
+    QuerySnapshot moodsSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('moods')
+        .get();
+
+    Map<DateTime, String> moodMap = {};
+    for (var doc in moodsSnapshot.docs) {
+      DateTime date = (doc['timestamp'] as Timestamp).toDate();
+      DateTime normalizedDate = DateTime(date.year, date.month, date.day);
+      moodMap[normalizedDate] = doc['type'];
+    }
+
+    Map<String, int> counts = {};
+    for (var taskDoc in tasksSnapshot.docs) {
+      Timestamp completedAt = taskDoc['completedAt'] as Timestamp;
+      DateTime taskDate = completedAt.toDate();
+      if (taskDate.isBefore(startDate)) continue;
+
+      DateTime normalizedTaskDate = DateTime(taskDate.year, taskDate.month, taskDate.day);
+      String? mood = moodMap[normalizedTaskDate];
+      if (mood != null) {
+        counts[mood] = (counts[mood] ?? 0) + 1;
+      }
+    }
+
+    setState(() {
+      moodProductivity = counts;
+    });
+  }
+
+  Widget _buildMoodProductivityChart() {
+    final total = moodProductivity.values.fold(0, (a, b) => a + b);
+    final sections = moodProductivity.entries.map((entry) {
+      final double percent = total > 0 ? (entry.value / total * 100) : 0;
+      return PieChartSectionData(
+        value: percent,
+        color: _getMoodColor(entry.key),
+        title: '${percent.toStringAsFixed(1)}%',
+        radius: 50,
+        titleStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      );
+    }).toList();
+
+    return PieChart(
+      PieChartData(
+        sections: sections,
+        centerSpaceRadius: 40,
+        sectionsSpace: 2,
+        pieTouchData: PieTouchData(
+          touchCallback: (FlTouchEvent event, pieTouchResponse) {},
+          enabled: true,
+        ),
+      ),
+    );
+  }
+
+  Color _getMoodColor(String mood) {
+    switch (mood) {
+      case "Радость":
+        return Colors.green;
+      case "Спокойствие":
+        return Colors.blue;
+      case "Усталость":
+        return Colors.orange;
+      case "Грусть":
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
+  }
+
 }

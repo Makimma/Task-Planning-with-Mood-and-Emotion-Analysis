@@ -113,7 +113,7 @@ class _TasksScreenState extends State<TasksScreen> {
     User? user = TaskActions.user;
     if (user == null) return;
 
-    QuerySnapshot snapshot = TaskRepository.getTasksByStatus(status) as QuerySnapshot<Object?>;
+    QuerySnapshot snapshot = await TaskRepository.getTasksByStatus(status);
 
     setState(() {
       allTasks = snapshot.docs.map((doc) {
