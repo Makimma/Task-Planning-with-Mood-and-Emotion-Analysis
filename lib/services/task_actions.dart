@@ -49,6 +49,7 @@ class TaskActions {
     String priority = task['priority'];
     int emotionalLoad = task['emotionalLoad'];
     DateTime deadline = (task['deadline'] as Timestamp).toDate();
+    int reminderOffset = task['reminderOffset'] ?? 0;
 
     showDialog(
       context: context,
@@ -129,6 +130,18 @@ class TaskActions {
                       },
                       child: Text("Выбрать дату и время"),
                     ),
+                    DropdownButtonFormField<int>(
+                      value: reminderOffset,
+                      decoration: InputDecoration(labelText: "🔔 Напомнить за"),
+                      onChanged: (value) => setState(() => reminderOffset = value ?? 0),
+                      items: const [
+                        DropdownMenuItem(value: 0, child: Text("Не уведомлять")),
+                        DropdownMenuItem(value: 15, child: Text("15 минут")),
+                        DropdownMenuItem(value: 60, child: Text("1 час")),
+                        DropdownMenuItem(value: 180, child: Text("3 часа")),
+                        DropdownMenuItem(value: 1440, child: Text("1 день")),
+                      ],
+                    ),
                   ],
                 ),
               );
@@ -143,7 +156,7 @@ class TaskActions {
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
                   updateTask(task['id'], title, comment, category, priority,
-                      emotionalLoad, deadline, context);
+                      emotionalLoad, deadline, reminderOffset, context);
                 }
                 if (context.mounted) Navigator.pop(context);
               },
@@ -163,6 +176,7 @@ class TaskActions {
     String priority,
     int emotionalLoad,
     DateTime deadline,
+    int reminderOffset,
     BuildContext context,
   ) async {
     try {
@@ -174,7 +188,20 @@ class TaskActions {
         priority: priority,
         emotionalLoad: emotionalLoad,
         deadline: deadline,
+        reminderOffset: reminderOffset
       );
+
+      await NotificationService.cancelReminder(taskId.hashCode);
+      if (reminderOffset > 0) {
+        await NotificationService.scheduleReminder(
+          id: taskId.hashCode,
+          title: title,
+          reminderTime: deadline.subtract(Duration(minutes: reminderOffset)),
+        );
+      }
+      print('Reminder at: ${deadline.subtract(Duration(minutes: reminderOffset))}');
+      print('Now: ${DateTime.now()}');
+
     } catch (e) {
       NotificationService.showErrorSnackbar(
           context, "Ошибка обновления: ${e.toString()}");
@@ -183,6 +210,7 @@ class TaskActions {
 
   static void completeTask(String taskId, BuildContext context) async {
     try {
+      await NotificationService.cancelReminder(taskId.hashCode);
       await TaskRepository.completeTask(taskId);
       NotificationService.showSuccessSnackbar(context, "Задача выполнена!");
     } catch (e) {
@@ -199,19 +227,32 @@ class TaskActions {
     required String priority,
     required int emotionalLoad,
     required DateTime deadline,
+    required int reminderOffsetMinutes,
   }) async {
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) throw Exception('Пользователь не авторизован');
 
-      await TaskRepository.addTask(
+      final docRef = await TaskRepository.addTask(
         title: title,
         comment: comment,
         category: category,
         priority: priority,
         emotionalLoad: emotionalLoad,
         deadline: deadline.toUtc(),
+        reminderOffsetMinutes: reminderOffsetMinutes,
       );
+
+      if (reminderOffsetMinutes > 0) {
+        await NotificationService.scheduleReminder(
+          id: docRef.id.hashCode,
+          title: title,
+          reminderTime: deadline.subtract(
+              Duration(minutes: reminderOffsetMinutes)),
+        );
+      }
+      print('Reminder at: ${deadline.subtract(Duration(minutes: reminderOffsetMinutes))}');
+      print('Now: ${DateTime.now()}');
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -231,6 +272,7 @@ class TaskActions {
 
   static Future<void> deleteTask(BuildContext context, String taskId) async {
     try {
+      await NotificationService.cancelReminder(taskId.hashCode);
       await TaskRepository.deleteTask(taskId);
     } catch (e) {
       NotificationService.showErrorSnackbar(

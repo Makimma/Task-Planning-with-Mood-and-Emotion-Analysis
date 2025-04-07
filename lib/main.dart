@@ -1,3 +1,4 @@
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -27,7 +28,29 @@ void main() async {
 
   FirebaseFirestore.instance.settings = Settings(
     persistenceEnabled: true, // Включаем кэш Firestore
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
+
+  await AwesomeNotifications().initialize(
+    null,
+    [
+      NotificationChannel(
+        channelKey: 'task_channel',
+        channelName: 'Task Reminders',
+        channelDescription: 'Напоминания о задачах',
+        defaultColor: Colors.blue,
+        importance: NotificationImportance.High,
+        channelShowBadge: true,
+      ),
+    ],
+  );
+
+  AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+    if (!isAllowed) {
+      AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+  });
+
   runApp(
       // DevicePreview(
       //     builder: (context) =>

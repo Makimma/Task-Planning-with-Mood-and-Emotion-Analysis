@@ -20,6 +20,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   late String priority = "medium";
   late int emotionalLoad = 3;
   late DateTime deadline = DateTime.now();
+  int reminderOffsetMinutes = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +49,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 _buildPrioritySelector(setState),
                 _buildEmotionalLoadSlider(setState),
                 _buildDateTimePicker(setState),
+                _buildReminderDropdown(setState),
               ],
             ),
           );
@@ -144,6 +146,31 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     );
   }
 
+  Widget _buildReminderDropdown(StateSetter setState) {
+    final options = {
+      0: "Не уведомлять",
+      15: "15 минут",
+      60: "1 час",
+      180: "3 часа",
+      1440: "1 день"
+    };
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0),
+      child: DropdownButtonFormField<int>(
+        value: reminderOffsetMinutes,
+        onChanged: (value) => setState(() => reminderOffsetMinutes = value!),
+        items: options.entries.map((entry) {
+          return DropdownMenuItem<int>(
+            value: entry.key,
+            child: Text(entry.value),
+          );
+        }).toList(),
+        decoration: InputDecoration(labelText: "🔔 Напомнить за"),
+      ),
+    );
+  }
+
   void _submitForm(BuildContext context) {
     if (_formKey.currentState!.validate()) {
       TaskActions.addTask(
@@ -154,6 +181,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
         priority: priority,
         emotionalLoad: emotionalLoad,
         deadline: deadline,
+        reminderOffsetMinutes: reminderOffsetMinutes,
       );
       widget.onTaskAdded();
       Navigator.pop(context);

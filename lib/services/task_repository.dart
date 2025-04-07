@@ -31,7 +31,7 @@ class TaskRepository {
     }
   }
 
-  static Future<void> updateTask({required String taskId, required String title, required String comment, required String category, required String priority, required int emotionalLoad, required DateTime deadline,}) async {
+  static Future<void> updateTask({required String taskId, required String title, required String comment, required String category, required String priority, required int emotionalLoad, required DateTime deadline, required int reminderOffset,}) async {
     try {
       final userId = _getCurrentUserId();
       await _firestore
@@ -46,6 +46,7 @@ class TaskRepository {
         'priority': priority,
         'emotionalLoad': emotionalLoad,
         'deadline': Timestamp.fromDate(deadline),
+        'reminderOffset': reminderOffset,
       });
     } catch (e) {
       throw Exception('Ошибка обновления задачи: $e');
@@ -69,10 +70,10 @@ class TaskRepository {
     }
   }
 
-  static Future<void> addTask({required String title, required String comment, required String category, required String priority, required int emotionalLoad, required DateTime deadline,}) async {
+  static Future<DocumentReference> addTask({required String title, required String comment, required String category, required String priority, required int emotionalLoad, required DateTime deadline, required int reminderOffsetMinutes,}) async {
     try {
       final userId = _getCurrentUserId();
-      await _firestore
+      return await _firestore
           .collection('users')
           .doc(userId)
           .collection('tasks')
@@ -85,6 +86,7 @@ class TaskRepository {
         'deadline': Timestamp.fromDate(deadline),
         'status': 'active',
         'createdAt': Timestamp.now(),
+        'reminderOffset': reminderOffsetMinutes,
       });
     } catch (e) {
       throw Exception('Ошибка создания задачи: $e');

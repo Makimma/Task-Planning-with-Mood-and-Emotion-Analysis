@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 
+import 'notification_service.dart';
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -21,6 +23,7 @@ class AuthService {
         );
 
         final UserCredential userCredential = await _auth.signInWithCredential(credential);
+        await NotificationService.toggleNotifications(true);
         return userCredential.user;
       }
     } catch (e) {
@@ -35,6 +38,7 @@ class AuthService {
         email: email,
         password: password,
       );
+      await NotificationService.toggleNotifications(true);
       return userCredential.user;
     } catch (e) {
       print("Ошибка входа: $e");
@@ -58,5 +62,6 @@ class AuthService {
   Future<void> signOut() async {
     await _auth.signOut();
     await GoogleSignIn().signOut();
+    await NotificationService.toggleNotifications(false);
   }
 }
