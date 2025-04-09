@@ -194,6 +194,7 @@ class _TasksScreenState extends State<TasksScreen> {
                 },
                 child: TaskCard(
                   task: task,
+                  isCompleted: true,
                   onEdit: () => TaskActions.showEditTaskDialog(context, task),
                   onComplete: () =>
                       TaskActions.completeTask(task['id'], context),

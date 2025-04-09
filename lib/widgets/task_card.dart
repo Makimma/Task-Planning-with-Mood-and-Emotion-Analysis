@@ -6,7 +6,12 @@ class TaskCard extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onComplete;
 
-  const TaskCard({required this.task, this.onEdit, this.onComplete, super.key});
+  const TaskCard(
+      {required this.task,
+      this.onEdit,
+      this.onComplete,
+      super.key,
+      required bool isCompleted});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +19,7 @@ class TaskCard extends StatelessWidget {
     DateTime deadline = _convertToDateTime(task['deadline']); // Преобразуем тип
 
     return Card(
-      color: _isOverdue(deadline) ? Colors.red.shade100 : Colors.white,
+      color: (!isCompleted && _isOverdue(deadline)) ? Colors.red.shade100 : Colors.white,
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Row(
@@ -32,7 +37,8 @@ class TaskCard extends StatelessWidget {
           ),
           Expanded(
             child: ListTile(
-              title: Text(task['title'], style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(task['title'],
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -45,18 +51,18 @@ class TaskCard extends StatelessWidget {
               trailing: isCompleted
                   ? null
                   : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.edit, color: Colors.blue),
-                    onPressed: onEdit,
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.check_circle, color: Colors.green),
-                    onPressed: onComplete,
-                  ),
-                ],
-              ),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit, color: Colors.blue),
+                          onPressed: onEdit,
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.check_circle, color: Colors.green),
+                          onPressed: onComplete,
+                        ),
+                      ],
+                    ),
             ),
           ),
         ],
