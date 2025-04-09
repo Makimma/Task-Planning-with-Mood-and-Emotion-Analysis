@@ -36,6 +36,10 @@ class TaskFilter {
   }) {
     tasks.sort((a, b) {
       switch (selectedSortOption) {
+        case "Дата создания":
+          final dateA = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+          final dateB = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+          return dateB.compareTo(dateA);
         case "Дедлайн":
           return (a['deadline'] as Timestamp)
               .compareTo(b['deadline'] as Timestamp);

@@ -26,7 +26,7 @@ class _TasksScreenState extends State<TasksScreen> {
   bool filterByPriority = false;
   bool filterByEmotionalLoad = false;
 
-  String selectedSortOption = "Дедлайн";
+  String selectedSortOption = "Дата создания";
 
   @override
   void initState() {
@@ -66,7 +66,7 @@ class _TasksScreenState extends State<TasksScreen> {
               SizedBox(width: 16),
               AppDropdown(
                 selectedOption: selectedSortOption,
-                options: ["Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
+                options: ["Дата создания", "Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
                 maxWidth: 140,
                 onOptionSelected: (value) =>
                     setState(() => selectedSortOption = value),
@@ -175,6 +175,7 @@ class _TasksScreenState extends State<TasksScreen> {
         );
 
         return ListView.builder(
+          padding: EdgeInsets.only(bottom: 100),
           itemCount: filteredTasks.length,
           itemBuilder: (context, index) {
             final task = filteredTasks[index];
