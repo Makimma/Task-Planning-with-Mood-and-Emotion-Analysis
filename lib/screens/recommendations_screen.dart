@@ -80,7 +80,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
           children: [
             if (currentMood == null)
               Card(
-                color: Colors.red.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.red.shade900.withOpacity(0.2)
+                    : Colors.red.shade50,
                 child: Padding(
                   padding: EdgeInsets.all(12),
                   child: Row(
@@ -90,7 +92,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                       Expanded(
                         child: Text(
                           "Укажите ваше настроение, чтобы получать более точные рекомендации.",
-                          style: TextStyle(fontSize: 14),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                          ),
                         ),
                       ),
                     ],

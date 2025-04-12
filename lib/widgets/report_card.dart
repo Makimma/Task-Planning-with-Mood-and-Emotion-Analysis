@@ -11,9 +11,14 @@ class ReportCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
-        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
-        trailing: Text("$count",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        title: Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        trailing: Text(
+          "$count",
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }

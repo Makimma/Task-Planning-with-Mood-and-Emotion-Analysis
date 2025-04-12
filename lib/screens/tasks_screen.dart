@@ -77,11 +77,11 @@ class _TasksScreenState extends State<TasksScreen> {
           bottom: PreferredSize(
             preferredSize: Size.fromHeight(48),
             child: Container(
-              color: Colors.white,
+              color: Theme.of(context).scaffoldBackgroundColor,
               child: TabBar(
-                indicatorColor: Colors.blue,
-                labelColor: Colors.black,
-                unselectedLabelColor: Colors.grey,
+                indicatorColor: Theme.of(context).colorScheme.primary,
+                labelColor: Theme.of(context).textTheme.bodyLarge?.color,
+                unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                 tabs: [
                   Tab(text: 'Активные'),
                   Tab(text: 'Выполненные'),

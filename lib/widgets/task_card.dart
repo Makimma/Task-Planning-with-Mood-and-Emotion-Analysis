@@ -19,7 +19,9 @@ class TaskCard extends StatelessWidget {
     DateTime deadline = _convertToDateTime(task['deadline']); // Преобразуем тип
 
     return Card(
-      color: (!isCompleted && _isOverdue(deadline)) ? Colors.red.shade100 : Colors.white,
+      color: Theme.of(context).cardColor.withOpacity(
+            (!isCompleted && _isOverdue(deadline)) ? 0.85 : 1.0,
+          ),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Row(
@@ -37,15 +39,20 @@ class TaskCard extends StatelessWidget {
           ),
           Expanded(
             child: ListTile(
-              title: Text(task['title'],
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                task['title'],
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleMedium!.color,
+                ),
+              ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Категория: ${task['category']}"),
-                  Text("Дедлайн: ${_formatTimestamp(deadline)}"),
-                  Text("Приоритет: ${task['priority']}"),
-                  Text("Эмоциональная нагрузка: ${task['emotionalLoad']}"),
+                  Text("Категория: ${task['category']}", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium!.color)),
+                  Text("Дедлайн: ${_formatTimestamp(deadline)}", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium!.color)),
+                  Text("Приоритет: ${task['priority']}", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium!.color)),
+                  Text("Эмоциональная нагрузка: ${task['emotionalLoad']}", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium!.color)),
                 ],
               ),
               trailing: isCompleted

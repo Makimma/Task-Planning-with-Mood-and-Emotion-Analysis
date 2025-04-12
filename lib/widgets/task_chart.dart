@@ -37,13 +37,13 @@ class TaskCharts extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.blueGrey[800],
+              color: Theme.of(context).textTheme.titleMedium?.color,
             ),
           ),
         ),
         Expanded(
           flex: 5,
-          child: _buildCategoryChart(),
+          child: _buildCategoryChart(context),
         ),
         SizedBox(height: 25),
         Padding(
@@ -53,7 +53,7 @@ class TaskCharts extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.blueGrey[800],
+              color: Theme.of(context).textTheme.titleMedium?.color,
             ),
           ),
         ),
@@ -65,7 +65,7 @@ class TaskCharts extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryChart() {
+  Widget _buildCategoryChart(BuildContext context) {
     final total = categoryCounts.values.fold(0, (a, b) => a + b);
 
     final sortedEntries = categoryCounts.entries.toList()
@@ -122,7 +122,7 @@ class TaskCharts extends StatelessWidget {
                         _shortenLabel(category),
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.black,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                         textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,

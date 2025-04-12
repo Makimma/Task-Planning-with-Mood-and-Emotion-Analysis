@@ -33,7 +33,8 @@ class _MoodScreenState extends State<MoodScreen> {
         .collection("users")
         .doc(user.uid)
         .collection("moods")
-        .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where("timestamp",
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
         .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
         .get();
 
@@ -55,7 +56,8 @@ class _MoodScreenState extends State<MoodScreen> {
       });
 
       // Переводим заметку на английский
-      String? translatedText = await TranslationService.translateText(note, "en");
+      String? translatedText =
+          await TranslationService.translateText(note, "en");
       if (translatedText == null) {
         setState(() {
           currentMood = "Ошибка перевода!";
@@ -64,7 +66,8 @@ class _MoodScreenState extends State<MoodScreen> {
       }
 
       // Анализируем настроение (получаем `score` и `magnitude`)
-      Map<String, double>? sentimentResult = await NaturalLanguageService.analyzeSentiment(translatedText);
+      Map<String, double>? sentimentResult =
+          await NaturalLanguageService.analyzeSentiment(translatedText);
       if (sentimentResult != null) {
         double score = sentimentResult["score"]!;
         double magnitude = sentimentResult["magnitude"]!;
@@ -93,7 +96,8 @@ class _MoodScreenState extends State<MoodScreen> {
         .collection("users")
         .doc(user.uid)
         .collection("moods")
-        .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where("timestamp",
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
         .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
         .get();
 
@@ -146,7 +150,6 @@ class _MoodScreenState extends State<MoodScreen> {
     return "Спокойствие";
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,10 +159,14 @@ class _MoodScreenState extends State<MoodScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Текущее настроение:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Текущее настроение:",
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 5),
             Card(
-              color: Colors.blue.shade50,
+              color: Theme.of(context).cardColor,
               child: Padding(
                 padding: EdgeInsets.all(12),
                 child: Row(
@@ -168,14 +175,19 @@ class _MoodScreenState extends State<MoodScreen> {
                     SizedBox(width: 10),
                     Text(
                       currentMood,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
             ),
             SizedBox(height: 20),
-            Text("Выберите ваше настроение:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Выберите ваше настроение:",
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             MoodSelector(
               selectedMood: selectedMood,

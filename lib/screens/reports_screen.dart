@@ -200,7 +200,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           SizedBox(height: 10),
           Card(
-            color: Colors.blue.shade50,
+            color: Theme.of(context).cardColor,
             child: Padding(
               padding: EdgeInsets.all(12),
               child: Column(
@@ -254,7 +254,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 maxHeight: 300,
               ),
               child: moodData.isEmpty
-                  ? Center(child: Text("Нет данных за этот период"))
+                  ? Center(child: Text("Нет данных за этот период", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),))
                   : MoodChart(moodData: moodData),
             ),
 
@@ -270,7 +270,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 maxHeight: 500,
               ),
               child: categoryCounts.isEmpty && priorityCounts.isEmpty
-                  ? Center(child: Text("Нет данных о задачах"))
+                  ? Center(child: Text("Нет данных о задачах", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)))
                   : TaskCharts(
                 categoryCounts: categoryCounts,
                 priorityCounts: priorityCounts,

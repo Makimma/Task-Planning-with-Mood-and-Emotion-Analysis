@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../main.dart';
 import '../services/notification_service.dart';
 import 'auth_screen.dart';
 import '../services/auth_service.dart';
@@ -12,11 +13,37 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final AuthService _authService = AuthService();
   bool _notificationsEnabled = true;
+  String _selectedTheme = 'system'; // default
 
   @override
   void initState() {
     super.initState();
     _loadNotificationSetting();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedTheme = prefs.getString('theme_mode') ?? 'system';
+    });
+  }
+
+  Future<void> _changeTheme(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('theme_mode', value);
+    setState(() {
+      _selectedTheme = value;
+    });
+
+    // применяем в main.dart через глобальный доступ
+    final mode = {
+      'light': ThemeMode.light,
+      'dark': ThemeMode.dark,
+      'system': ThemeMode.system,
+    }[value]!;
+
+    MyApp.of(context).setThemeMode(mode);
   }
 
   Future<void> _loadNotificationSetting() async {
@@ -50,6 +77,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   : "Отключены — уведомления не будут приходить"),
               value: _notificationsEnabled,
               onChanged: _toggleNotifications,
+            ),
+            SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Тема приложения"),
+                DropdownButton<String>(
+                  value: _selectedTheme,
+                  items: [
+                    DropdownMenuItem(value: 'system', child: Text("Системная")),
+                    DropdownMenuItem(value: 'light', child: Text("Светлая")),
+                    DropdownMenuItem(value: 'dark', child: Text("Тёмная")),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) _changeTheme(value);
+                  },
+                ),
+              ],
             ),
             SizedBox(height: 40),
             ElevatedButton(
