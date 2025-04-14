@@ -21,6 +21,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   late int emotionalLoad = 3;
   late DateTime deadline = DateTime.now();
   int reminderOffsetMinutes = 0;
+  String? categoryError;
+  String? emotionalLoadError;
 
   @override
   Widget build(BuildContext context) {
@@ -91,9 +93,20 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               child: Text(value),
             );
           }).toList(),
-          onChanged: (value) => setState(() => category = value!),
+          onChanged: (value) => setState(() {
+            category = value!;
+            categoryError = null;
+          }),
           decoration: InputDecoration(labelText: "Категория"),
         ),
+        if (categoryError != null)
+          Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              categoryError!,
+              style: TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
         ElevatedButton(
           onPressed: () => _analyzeCategory(setState),
           child: Text("Определить категорию задачи"),
@@ -125,8 +138,19 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           max: 5,
           divisions: 4,
           label: emotionalLoad.toString(),
-          onChanged: (value) => setState(() => emotionalLoad = value.toInt()),
+          onChanged: (value) => setState(() {
+            emotionalLoad = value.toInt();
+            emotionalLoadError = null;
+          }),
         ),
+        if (emotionalLoadError != null)
+          Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              emotionalLoadError!,
+              style: TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
         ElevatedButton(
           onPressed: () => _analyzeEmotionalLoad(setState),
           child: Text("Определить эмоциональную нагрузку"),
@@ -194,10 +218,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       comment: comment,
       context: context,
       onSuccess: (newCategory) {
-        setState(() => category = newCategory);
-        _showSuccessSnackbar('Категория определена: $category', Colors.green);
+        setState(() {
+          category = newCategory;
+          categoryError = null;
+        });
       },
-      onError: _showErrorSnackbar,
+      onError: (error) {
+        setState(() {
+          categoryError = error;
+        });
+      },
     );
   }
 
@@ -207,43 +237,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       comment: comment,
       context: context,
       onSuccess: (newLoad) {
-        setState(() => emotionalLoad = newLoad);
-        _showSuccessSnackbar(
-            'Нагрузка определена: уровень $emotionalLoad', Colors.blue);
+        setState(() {
+          emotionalLoad = newLoad;
+          emotionalLoadError = null;
+        });
       },
-      onError: _showErrorSnackbar,
-    );
-  }
-
-  void _showSuccessSnackbar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: color),
-            SizedBox(width: 8),
-            Text(message),
-          ],
-        ),
-        backgroundColor: color.withOpacity(0.2),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _showErrorSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.error, color: Colors.red),
-            SizedBox(width: 8),
-            Text(message),
-          ],
-        ),
-        backgroundColor: Colors.red[100],
-        duration: Duration(seconds: 3),
-      ),
+      onError: (error) {
+        setState(() {
+          emotionalLoadError = error;
+        });
+      },
     );
   }
 }

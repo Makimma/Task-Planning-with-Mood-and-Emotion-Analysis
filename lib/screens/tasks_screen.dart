@@ -175,7 +175,7 @@ class _TasksScreenState extends State<TasksScreen> {
         );
 
         return ListView.builder(
-          padding: EdgeInsets.only(bottom: 100),
+          padding: EdgeInsets.only(top: 16, bottom: 80),
           itemCount: filteredTasks.length,
           itemBuilder: (context, index) {
             final task = filteredTasks[index];
