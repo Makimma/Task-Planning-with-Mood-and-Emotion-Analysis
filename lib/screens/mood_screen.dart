@@ -247,15 +247,8 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver {
       return;
     }
 
-    // Сохраняем выбранное настроение как текущее
-    final String newMood = selectedMood;
-    if (!mounted) return;
-    setState(() {
-      currentMood = newMood;
-    });
-
     // Сохраняем локально
-    await _saveLocalMood(newMood, note);
+    await _saveLocalMood(selectedMood, note);
 
     // Пробуем синхронизировать с сервером
     if (isOnline) {
@@ -271,9 +264,9 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver {
       );
     }
 
-    // Очищаем поля ввода
     if (!mounted) return;
     setState(() {
+      currentMood = selectedMood;
       selectedMood = "";
       note = "";
     });
@@ -305,28 +298,6 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!isOnline)
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 16),
-                    child: Card(
-                      color: Colors.orange[100],
-                      child: Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Row(
-                          children: [
-                            Icon(Icons.wifi_off, color: Colors.orange),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                "Нет подключения к интернету. Данные сохраняются локально.",
-                                style: TextStyle(color: Colors.orange[900]),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 Text(
                   "Текущее настроение:",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(

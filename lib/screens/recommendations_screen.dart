@@ -2,43 +2,155 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:convert';
 import 'package:flutter_appp/services/task_actions.dart';
 import 'package:flutter_appp/widgets/task_card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_appp/services/task_repository.dart';
 
 class RecommendationsScreen extends StatefulWidget {
   @override
   _RecommendationsScreenState createState() => _RecommendationsScreenState();
 }
 
-class _RecommendationsScreenState extends State<RecommendationsScreen> {
+class _RecommendationsScreenState extends State<RecommendationsScreen> with WidgetsBindingObserver {
   String? currentMood;
+  bool isOnline = true;
+  List<Map<String, dynamic>> cachedTasks = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchUserMood();
+    WidgetsBinding.instance.addObserver(this);
+    _initializeScreen();
   }
 
-  void _fetchUserMood() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-    DateTime now = DateTime.now();
-    DateTime startOfDay = DateTime(now.year, now.month, now.day);
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _initializeScreen();
+    }
+  }
 
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('moods')
-        .where('timestamp',
-        isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .orderBy('timestamp', descending: true)
-        .get();
-
-    if (snapshot.docs.isNotEmpty) {
+  Future<void> _initializeScreen() async {
+    await _checkConnectivity();
+    final cachedMood = await _loadMoodFromCache();
+    if (cachedMood != null && mounted) {
       setState(() {
-        currentMood = snapshot.docs.first['type'];
+        currentMood = cachedMood;
       });
+    }
+
+    if (isOnline) {
+      await _fetchUserMood();
+    }
+  }
+
+  Future<void> _checkConnectivity() async {
+    try {
+      var connectivityResult = await Connectivity().checkConnectivity();
+      if (!mounted) return;
+      setState(() {
+        isOnline = connectivityResult != ConnectivityResult.none;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        isOnline = false;
+      });
+    }
+  }
+
+  Future<void> _saveMoodToCache(String mood) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('current_mood', mood);
+  }
+
+  Future<String?> _loadMoodFromCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final moodData = prefs.getString('current_mood');
+    if (moodData != null) {
+      try {
+        final Map<String, dynamic> moodMap = json.decode(moodData);
+        return moodMap['type'] as String;
+      } catch (e) {
+        return moodData;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _saveTasksToCache(List<Map<String, dynamic>> tasks) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tasksJson = json.encode(tasks.map((task) {
+      return {
+        ...task,
+        'deadline': (task['deadline'] as Timestamp).toDate().toIso8601String(),
+      };
+    }).toList());
+    await prefs.setString('cached_tasks', tasksJson);
+  }
+
+  Future<void> _loadCachedTasks() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tasksString = prefs.getString('cached_tasks');
+      if (tasksString != null) {
+        final List<dynamic> decodedTasks = json.decode(tasksString);
+        if (!mounted) return;
+        setState(() {
+          cachedTasks = decodedTasks.map((task) {
+            return {
+              ...task,
+              'deadline': Timestamp.fromDate(DateTime.parse(task['deadline'])),
+            };
+          }).cast<Map<String, dynamic>>().toList();
+        });
+      }
+    } catch (e) {
+      print('Ошибка загрузки кэшированных задач: $e');
+    }
+  }
+
+  Future<void> _fetchUserMood() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      DateTime now = DateTime.now();
+      DateTime startOfDay = DateTime(now.year, now.month, now.day);
+
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('moods')
+          .where('timestamp',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      if (snapshot.docs.isNotEmpty && mounted) {
+        final serverMood = snapshot.docs.first['type'];
+        await _saveMoodToCache(serverMood);
+        setState(() {
+          currentMood = serverMood;
+        });
+      }
+    } catch (e) {
+      print('Ошибка получения настроения: $e');
+      final cachedMood = await _loadMoodFromCache();
+      if (cachedMood != null && mounted) {
+        setState(() {
+          currentMood = cachedMood;
+        });
+      }
     }
   }
 
@@ -55,60 +167,78 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     return (deadlineFactor * 0.5) + (emotionalLoadFactor * 0.3) + (priorityFactor * 0.2);
   }
 
-
   double _getEmotionalLoadFactor(int load) {
-    if (currentMood == "Радость") {
-      return load / 5;
-    } else if (currentMood == "Спокойствие") {
-      return 1 - (pow(load - 3, 2) / 4).toDouble();
-    } else if (currentMood == "Грусть") {
-      return (5 - load) / 4;
-    } else if (currentMood == "Усталость") {
-      return ((pow(5 - load, 2) + 4) / 20).toDouble();
+    String? moodType = currentMood;
+    if (currentMood != null) {
+      try {
+        final Map<String, dynamic> moodMap = 
+            (currentMood is String && currentMood!.startsWith('{')) 
+                ? json.decode(currentMood!) 
+                : {'type': currentMood};
+        moodType = moodMap['type'] as String;
+      } catch (e) {
+        moodType = currentMood;
+      }
     }
-    return 0.5;
+
+    double factor = 0.5;
+
+    if (moodType == "Радость") {
+      factor = load / 5;
+    } else if (moodType == "Спокойствие") {
+      factor = 1 - (pow(load - 3, 2) / 4).toDouble();
+    } else if (moodType == "Грусть") {
+      factor = (5 - load) / 4;
+    } else if (moodType == "Усталость") {
+      factor = ((pow(5 - load, 2) + 4) / 20).toDouble();
+    }
+
+    return factor;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Рекомендации")),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (currentMood == null)
-              Card(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.red.shade900.withOpacity(0.2)
-                    : Colors.red.shade50,
-                child: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      Icon(Icons.warning, color: Colors.red),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "Укажите ваше настроение, чтобы получать более точные рекомендации.",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(context).textTheme.bodyMedium?.color,
+      body: RefreshIndicator(
+        onRefresh: _initializeScreen,
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (currentMood == null)
+                Card(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.red.shade900.withOpacity(0.2)
+                      : Colors.red.shade50,
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning, color: Colors.red),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Укажите ваше настроение, чтобы получать более точные рекомендации.",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).textTheme.bodyMedium?.color,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
+              SizedBox(height: 10),
+              Text(
+                "Рекомендуемые задачи:",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            SizedBox(height: 10),
-            Text(
-              "Рекомендуемые задачи:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Expanded(child: _buildTaskList()),
-          ],
+              Expanded(child: _buildTaskList()),
+            ],
+          ),
         ),
       ),
     );
@@ -116,12 +246,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
 
   Widget _buildTaskList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection('tasks')
-          .where('status', isEqualTo: 'active')
-          .snapshots(), // ✅ Автоматическое обновление
+      stream: TaskRepository.getTasksStream('active'),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -133,12 +258,16 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
 
         List<Map<String, dynamic>> tasks = snapshot.data!.docs.map((doc) {
           return {
-            "id": doc.id,
+            'id': doc.id,
             ...doc.data() as Map<String, dynamic>,
           };
         }).toList();
 
-        tasks.sort((a, b) => _calculatePriority(b).compareTo(_calculatePriority(a)));
+        tasks.sort((a, b) {
+          final priorityA = _calculatePriority(a);
+          final priorityB = _calculatePriority(b);
+          return priorityB.compareTo(priorityA);
+        });
 
         return ListView.builder(
           itemCount: tasks.length,
@@ -146,23 +275,23 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
             final task = tasks[index];
 
             return Dismissible(
-                key: Key(task['id']),
-            direction: DismissDirection.endToStart,
-            background: Container(
-            color: Colors.red,
-            alignment: Alignment.centerRight,
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Icon(Icons.delete, color: Colors.white, size: 30),
-            ),
-            confirmDismiss: (direction) async {
-            return await TaskActions.showDeleteConfirmation(context, task['id']);
-            },
-            child: TaskCard(
-              task: task,
-              isCompleted: false,
-              onEdit: () => TaskActions.showEditTaskDialog(context, task),
-              onComplete: () => TaskActions.completeTask(task['id'], context),
-            )
+              key: Key(task['id']),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                color: Colors.red,
+                alignment: Alignment.centerRight,
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Icon(Icons.delete, color: Colors.white, size: 30),
+              ),
+              confirmDismiss: (direction) async {
+                return await TaskActions.showDeleteConfirmation(context, task['id']);
+              },
+              child: TaskCard(
+                task: task,
+                isCompleted: false,
+                onEdit: () => TaskActions.showEditTaskDialog(context, task),
+                onComplete: () => TaskActions.completeTask(task['id'], context),
+              ),
             );
           },
         );
