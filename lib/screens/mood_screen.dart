@@ -43,7 +43,10 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver {
     await _checkConnectivity();
     await _loadLocalMood();
     if (isOnline) {
-      _loadServerMood();
+        // Сначала пробуем синхронизировать локальные изменения
+        await _syncOfflineMoods();
+        // Только после этого загружаем с сервера
+        await _loadServerMood();
     }
   }
 
@@ -105,32 +108,39 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver {
 
   Future<void> _loadServerMood() async {
     try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+        User? user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
 
-      DateTime now = DateTime.now();
-      DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
-      DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        // Проверяем, нет ли несинхронизированных изменений
+        final localMood = await _getLocalMood();
+        if (localMood != null && localMood['synced'] == false) {
+            // Если есть несинхронизированные изменения, не загружаем с сервера
+            return;
+        }
 
-      QuerySnapshot moodSnapshot = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("moods")
-          .where("timestamp",
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .get();
+        DateTime now = DateTime.now();
+        DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
+        DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-      if (moodSnapshot.docs.isNotEmpty && mounted) {
-        final serverMood = moodSnapshot.docs.first["type"];
-        await _saveLocalMood(serverMood, moodSnapshot.docs.first["note"] ?? "");
-        
-        setState(() {
-          currentMood = serverMood;
-        });
-      }
+        QuerySnapshot moodSnapshot = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(user.uid)
+            .collection("moods")
+            .where("timestamp",
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+            .get();
+
+        if (moodSnapshot.docs.isNotEmpty && mounted) {
+            final serverMood = moodSnapshot.docs.first["type"];
+            await _saveLocalMood(serverMood, moodSnapshot.docs.first["note"] ?? "");
+            
+            setState(() {
+                currentMood = serverMood;
+            });
+        }
     } catch (e) {
-      print('Ошибка загрузки серверного настроения: $e');
+        print('Ошибка загрузки серверного настроения: $e');
     }
   }
 
@@ -138,56 +148,62 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver {
     if (!isOnline) return;
 
     try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+        User? user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
 
-      final localMood = await _getLocalMood();
-      if (localMood == null || localMood['synced'] == true) return;
+        final localMood = await _getLocalMood();
+        if (localMood == null || localMood['synced'] == true) return;
 
-      DateTime now = DateTime.now();
-      DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
-      DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        DateTime now = DateTime.now();
+        DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
+        DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-      QuerySnapshot moodSnapshot = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("moods")
-          .where("timestamp",
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .get();
-
-      if (moodSnapshot.docs.isNotEmpty) {
-        await FirebaseFirestore.instance
+        QuerySnapshot moodSnapshot = await FirebaseFirestore.instance
             .collection("users")
             .doc(user.uid)
             .collection("moods")
-            .doc(moodSnapshot.docs.first.id)
-            .update({
-          "type": localMood['type'],
-          "note": localMood['note'],
-          "timestamp": Timestamp.fromDate(DateTime.parse(localMood['timestamp'])),
-        });
-      } else {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(user.uid)
-            .collection("moods")
-            .add({
-          "type": localMood['type'],
-          "note": localMood['note'],
-          "timestamp": Timestamp.fromDate(DateTime.parse(localMood['timestamp'])),
-        });
-      }
+            .where("timestamp",
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+            .get();
 
-      final updatedMoodData = {
-        ...localMood,
-        'synced': true,
-      };
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('current_mood', json.encode(updatedMoodData));
+        if (moodSnapshot.docs.isNotEmpty) {
+            await FirebaseFirestore.instance
+                .collection("users")
+                .doc(user.uid)
+                .collection("moods")
+                .doc(moodSnapshot.docs.first.id)
+                .update({
+                    "type": localMood['type'],
+                    "note": localMood['note'],
+                    "timestamp": Timestamp.fromDate(DateTime.parse(localMood['timestamp'])),
+                });
+        } else {
+            await FirebaseFirestore.instance
+                .collection("users")
+                .doc(user.uid)
+                .collection("moods")
+                .add({
+                    "type": localMood['type'],
+                    "note": localMood['note'],
+                    "timestamp": Timestamp.fromDate(DateTime.parse(localMood['timestamp'])),
+                });
+        }
+
+        final updatedMoodData = {
+            ...localMood,
+            'synced': true,
+        };
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('current_mood', json.encode(updatedMoodData));
+
+        if (mounted) {
+            setState(() {
+                currentMood = localMood['type'];
+            });
+        }
     } catch (e) {
-      print('Ошибка синхронизации: $e');
+        print('Ошибка синхронизации: $e');
     }
   }
 
