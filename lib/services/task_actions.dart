@@ -153,22 +153,12 @@ class TaskActions {
               child: Text("Отмена"),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  Navigator.pop(context);
-                  
-                  await updateTask(
-                    task['id'],
-                    title,
-                    comment,
-                    category,
-                    priority,
-                    emotionalLoad,
-                    deadline,
-                    reminderOffset,
-                    context
-                  );
+                  updateTask(task['id'], title, comment, category, priority,
+                      emotionalLoad, deadline, reminderOffset, context);
                 }
+                if (context.mounted) Navigator.pop(context);
               },
               child: Text("Сохранить"),
             ),
@@ -189,7 +179,6 @@ class TaskActions {
     int reminderOffset,
     BuildContext context,
   ) async {
-    // Сначала обновляем локальное уведомление
     try {
       await NotificationService.cancelReminder(taskId.hashCode);
       if (reminderOffset > 0) {
@@ -198,6 +187,9 @@ class TaskActions {
           title: title,
           reminderTime: deadline.subtract(Duration(minutes: reminderOffset)),
         );
+        print('🔔 Создано новое уведомление для задачи: $title');
+      } else {
+        print('🔕 Уведомления для задачи отключены: $title');
       }
     } catch (e) {
       if (context.mounted) {
@@ -207,7 +199,6 @@ class TaskActions {
       return;
     }
 
-    // Затем пытаемся обновить в Firebase
     try {
       await TaskRepository.updateTask(
         taskId: taskId,
@@ -219,19 +210,10 @@ class TaskActions {
         deadline: deadline,
         reminderOffset: reminderOffset
       );
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Задача успешно обновлена')),
-        );
-      }
+
     } catch (e) {
-      // Если Firebase недоступен, показываем предупреждение
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Уведомление обновлено, данные будут синхронизированы позже')),
-        );
-      }
+      NotificationService.showErrorSnackbar(
+          context, "Ошибка обновления: ${e.toString()}");
     }
   }
 
@@ -257,47 +239,36 @@ class TaskActions {
     required int reminderOffsetMinutes,
   }) async {
     try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) throw Exception('Пользователь не авторизован');
+
+      final docRef = await TaskRepository.addTask(
+        title: title,
+        comment: comment,
+        category: category,
+        priority: priority,
+        emotionalLoad: emotionalLoad,
+        deadline: deadline.toUtc(),
+        reminderOffsetMinutes: reminderOffsetMinutes,
+      );
+
       if (reminderOffsetMinutes > 0) {
         await NotificationService.scheduleReminder(
-          id: title.hashCode,
+          id: docRef.id.hashCode,
           title: title,
-          reminderTime: deadline.subtract(Duration(minutes: reminderOffsetMinutes)),
+          reminderTime: deadline.subtract(
+              Duration(minutes: reminderOffsetMinutes)),
         );
       }
-
-      try {
-        final docRef = await TaskRepository.addTask(
-          title: title,
-          comment: comment,
-          category: category,
-          priority: priority,
-          emotionalLoad: emotionalLoad,
-          deadline: deadline.toUtc(),
-          reminderOffsetMinutes: reminderOffsetMinutes,
-        );
-
-        if (reminderOffsetMinutes > 0) {
-          await NotificationService.cancelReminder(title.hashCode);
-          await NotificationService.scheduleReminder(
-            id: docRef.id.hashCode,
-            title: title,
-            reminderTime: deadline.subtract(Duration(minutes: reminderOffsetMinutes)),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Задача сохранена локально, но будет синхронизирована позже')),
-          );
-        }
-        return;
-      }
+      print('Reminder at: ${deadline.subtract(Duration(minutes: reminderOffsetMinutes))}');
+      print('Now: ${DateTime.now()}');
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Задача успешно создана')),
         );
       }
+
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

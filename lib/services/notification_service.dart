@@ -56,6 +56,7 @@ class NotificationService {
 
   static Future<void> cancelReminder(int id) async {
     await AwesomeNotifications().cancel(id);
+    print('🔕 Уведомление удалено: $id');
   }
 
   static void showErrorSnackbar(BuildContext context, String message) {
