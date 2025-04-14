@@ -93,9 +93,9 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver {
   Future<void> _loadLocalMood() async {
     try {
       final localMood = await _getLocalMood();
-      if (localMood != null && mounted) {
+      if (mounted) {
         setState(() {
-          currentMood = localMood['type'];
+          currentMood = localMood?['type'] ?? "Настроение не выбрано";
         });
       }
     } catch (e) {
@@ -315,7 +315,7 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver {
                         Icon(Icons.mood, color: Colors.blue),
                         SizedBox(width: 10),
                         Text(
-                          currentMood,
+                          currentMood.isEmpty ? "Настроение не выбрано" : currentMood,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
