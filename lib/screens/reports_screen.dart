@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -28,6 +30,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Map<String, int> moodProductivity = {};
 
+  bool isLoading = false;
+
+  StreamSubscription? _moodProductivitySubscription;
+
   @override
   void initState() {
     super.initState();
@@ -36,7 +42,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _fetchMoodProductivity();
   }
 
+  @override
+  void dispose() {
+    _moodProductivitySubscription?.cancel();
+    super.dispose();
+  }
+
   void _fetchTaskCounts() async {
+    setState(() {
+      isLoading = true;
+    });
+
     User? user = TaskRepository.getCurrentUser();
 
     DateTime now = DateTime.now();
@@ -46,32 +62,45 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ? today.subtract(Duration(days: 7))
         : today.subtract(Duration(days: 30));
 
-    int weekCount = selectedPeriod == "Неделя"
-        ? await _getCompletedTasks(user.uid, startDate)
-        : 0;
+    // Используем Stream для получения кэшированных данных выполненных задач
+    TaskRepository.getTasksStream("completed").listen((snapshot) {
+      int weekCount = 0;
+      int monthCount = 0;
+      Map<String, int> categoryData = {};
+      Map<String, int> priorityData = {};
 
-    int monthCount = selectedPeriod == "Месяц"
-        ? await _getCompletedTasks(user.uid, startDate)
-        : 0;
+      for (var doc in snapshot.docs) {
+        Timestamp? completedAt = doc['completedAt'] as Timestamp?;
+        if (completedAt != null && completedAt.toDate().isAfter(startDate)) {
+          if (selectedPeriod == "Неделя") {
+            weekCount++;
+          } else {
+            monthCount++;
+          }
 
-    final categoryData = await _getCategoryStats(user.uid, startDate);
-    final priorityData = await _getPriorityStats(user.uid, startDate);
+          // Собираем статистику по категориям
+          String category = doc['category'];
+          categoryData[category] = (categoryData[category] ?? 0) + 1;
 
-    setState(() {
-      tasksThisWeek = weekCount;
-      tasksThisMonth = monthCount;
-      categoryCounts = categoryData;
-      priorityCounts = priorityData;
+          // Собираем статистику по приоритетам
+          String priority = doc['priority'];
+          priorityData[priority] = (priorityData[priority] ?? 0) + 1;
+        }
+      }
+
+      setState(() {
+        tasksThisWeek = weekCount;
+        tasksThisMonth = monthCount;
+        categoryCounts = categoryData;
+        priorityCounts = priorityData;
+        isLoading = false;
+      });
+    }, onError: (error) {
+      setState(() {
+        isLoading = false;
+      });
+      print('Error fetching task counts: $error');
     });
-  }
-
-  Future<int> _getCompletedTasks(String userId, DateTime startDate) async {
-    QuerySnapshot snapshot = await TaskRepository.getTasksByStatus("completed");
-
-    return snapshot.docs.where((doc) {
-      Timestamp completedAt = doc['completedAt'] as Timestamp;
-      return completedAt.toDate().isAfter(startDate);
-    }).length;
   }
 
   void _fetchMoodHistory() async {
@@ -83,33 +112,39 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ? now.subtract(Duration(days: 7))
         : now.subtract(Duration(days: 30));
 
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
+    // Используем Stream для получения кэшированных данных
+    FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .collection('moods')
-        .where('timestamp',
-        isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
         .orderBy('timestamp', descending: false)
-        .get();
+        .snapshots()
+        .listen((snapshot) {
+      List<Map<String, dynamic>> moods = [];
+      List<Map<String, dynamic>> moodData = [];
 
-    List<Map<String, dynamic>> moods = snapshot.docs.map((doc) {
-      return {
-        "date": (doc['timestamp'] as Timestamp).toDate(),
-        "mood": doc['type'],
-      };
-    }).toList();
+      for (var doc in snapshot.docs) {
+        DateTime timestamp = (doc['timestamp'] as Timestamp).toDate();
+        if (timestamp.isAfter(startDate)) {
+          moods.add({
+            "date": timestamp,
+            "mood": doc['type'],
+          });
+          
+          moodData.add({
+            "date": timestamp,
+            "mood": doc['type'],
+            "note": doc['note'],
+          });
+        }
+      }
 
-    setState(() {
-      moodData = snapshot.docs.map((doc) {
-        return {
-          "date": (doc['timestamp'] as Timestamp).toDate(),
-          "mood": doc['type'],
-          "note": doc['note'],
-        };
-      }).toList();
+      setState(() {
+        this.moodData = moodData;
+      });
+
+      _calculateMoodStatistics(moods);
     });
-
-    _calculateMoodStatistics(moods);
   }
 
   void _calculateMoodStatistics(List<Map<String, dynamic>> moods) {
@@ -189,6 +224,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     int displayedTasks =
         selectedPeriod == "Неделя" ? tasksThisWeek : tasksThisMonth;
 
+    if (isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
     return Padding(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -238,6 +277,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildMoodReport() {
+    if (isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
     return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -346,43 +389,71 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Future<void> _fetchMoodProductivity() async {
+  void _fetchMoodProductivity() async {
+    setState(() {
+      isLoading = true;
+    });
+
     User? user = TaskRepository.getCurrentUser();
+    if (user == null) return;
 
     DateTime now = DateTime.now();
     DateTime startDate = selectedPeriod == "Неделя"
         ? now.subtract(Duration(days: 7))
         : now.subtract(Duration(days: 30));
 
-    QuerySnapshot tasksSnapshot = await TaskRepository.getTasksByStatus("completed");
-    QuerySnapshot moodsSnapshot = await FirebaseFirestore.instance
+    // Отменяем предыдущую подписку, если она существует
+    _moodProductivitySubscription?.cancel();
+
+    // Создаем Stream для задач
+    Stream<QuerySnapshot> tasksStream = TaskRepository.getTasksStream("completed");
+    // Создаем Stream для настроений
+    Stream<QuerySnapshot> moodsStream = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .collection('moods')
-        .get();
+        .snapshots();
 
-    Map<DateTime, String> moodMap = {};
-    for (var doc in moodsSnapshot.docs) {
-      DateTime date = (doc['timestamp'] as Timestamp).toDate();
-      DateTime normalizedDate = DateTime(date.year, date.month, date.day);
-      moodMap[normalizedDate] = doc['type'];
-    }
+    // Объединяем два Stream'а
+    _moodProductivitySubscription = tasksStream.listen((tasksSnapshot) {
+      moodsStream.listen((moodsSnapshot) {
+        Map<DateTime, String> moodMap = {};
+        for (var doc in moodsSnapshot.docs) {
+          DateTime date = (doc['timestamp'] as Timestamp).toDate();
+          DateTime normalizedDate = DateTime(date.year, date.month, date.day);
+          moodMap[normalizedDate] = doc['type'];
+        }
 
-    Map<String, int> counts = {};
-    for (var taskDoc in tasksSnapshot.docs) {
-      Timestamp completedAt = taskDoc['completedAt'] as Timestamp;
-      DateTime taskDate = completedAt.toDate();
-      if (taskDate.isBefore(startDate)) continue;
+        Map<String, int> counts = {};
+        for (var taskDoc in tasksSnapshot.docs) {
+          Timestamp? completedAt = taskDoc['completedAt'] as Timestamp?;
+          if (completedAt != null) {
+            DateTime taskDate = completedAt.toDate();
+            if (taskDate.isAfter(startDate)) {
+              DateTime normalizedTaskDate = DateTime(taskDate.year, taskDate.month, taskDate.day);
+              String? mood = moodMap[normalizedTaskDate];
+              if (mood != null) {
+                counts[mood] = (counts[mood] ?? 0) + 1;
+              }
+            }
+          }
+        }
 
-      DateTime normalizedTaskDate = DateTime(taskDate.year, taskDate.month, taskDate.day);
-      String? mood = moodMap[normalizedTaskDate];
-      if (mood != null) {
-        counts[mood] = (counts[mood] ?? 0) + 1;
-      }
-    }
-
-    setState(() {
-      moodProductivity = counts;
+        setState(() {
+          moodProductivity = counts;
+          isLoading = false;
+        });
+      }, onError: (error) {
+        setState(() {
+          isLoading = false;
+        });
+        print('Error fetching mood productivity: $error');
+      });
+    }, onError: (error) {
+      setState(() {
+        isLoading = false;
+      });
+      print('Error fetching tasks: $error');
     });
   }
 
