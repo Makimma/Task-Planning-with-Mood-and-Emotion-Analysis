@@ -40,16 +40,21 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   maxLength: 50,
                   validator: (value) => _validateTitle(value),
                   onChanged: (value) => title = value,
+                  onFieldSubmitted: (_) => _analyzeParameters(setState),
+                  onEditingComplete: () => _analyzeParameters(setState),
                 ),
                 TextFormField(
                   decoration: InputDecoration(
                       labelText: "Комментарий (дополнительно)"),
                   maxLength: 512,
                   onChanged: (value) => comment = value,
+                  onFieldSubmitted: (_) => _analyzeParameters(setState),
+                  onEditingComplete: () => _analyzeParameters(setState),
                 ),
                 _buildCategorySelector(setState),
                 _buildPrioritySelector(setState),
                 _buildEmotionalLoadSlider(setState),
+                _buildAnalysisButton(setState),
                 _buildDateTimePicker(setState),
                 _buildReminderDropdown(setState),
               ],
@@ -107,10 +112,6 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               style: TextStyle(color: Colors.red, fontSize: 12),
             ),
           ),
-        ElevatedButton(
-          onPressed: () => _analyzeCategory(setState),
-          child: Text("Определить категорию задачи"),
-        ),
       ],
     );
   }
@@ -151,11 +152,21 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               style: TextStyle(color: Colors.red, fontSize: 12),
             ),
           ),
-        ElevatedButton(
-          onPressed: () => _analyzeEmotionalLoad(setState),
-          child: Text("Определить эмоциональную нагрузку"),
-        ),
       ],
+    );
+  }
+
+  Widget _buildAnalysisButton(StateSetter setState) {
+    return Padding(
+      padding: EdgeInsets.only(top: 16),
+      child: ElevatedButton.icon(
+        onPressed: () {
+          _analyzeCategory(setState);
+          _analyzeEmotionalLoad(setState);
+        },
+        icon: Icon(Icons.auto_awesome),
+        label: Text("Обновить параметры"),
+      ),
     );
   }
 
@@ -209,6 +220,13 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       );
       widget.onTaskAdded();
       Navigator.pop(context);
+    }
+  }
+
+  void _analyzeParameters(StateSetter setState) {
+    if (title.isNotEmpty) {
+      _analyzeCategory(setState);
+      _analyzeEmotionalLoad(setState);
     }
   }
 
