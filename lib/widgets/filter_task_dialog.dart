@@ -22,6 +22,7 @@ class FilterDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String tempCategory = selectedCategory;
     Set<String> tempPriorities = Set.from(selectedPriorities);
     double tempMin = minLoad;
     double tempMax = maxLoad;
@@ -34,14 +35,14 @@ class FilterDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: selectedCategory,
+                value: tempCategory,
                 items: TaskConstants.categories.map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
                   );
                 }).toList(),
-                onChanged: (value) => onCategoryChanged(value!),
+                onChanged: (value) => setState(() => tempCategory = value!),
                 decoration: InputDecoration(labelText: "Категория"),
               ),
               SizedBox(height: 10),
@@ -89,6 +90,7 @@ class FilterDialog extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
+                onCategoryChanged(tempCategory);
                 onPriorityChanged(tempPriorities);
                 onLoadChanged(tempMin, tempMax);
                 Navigator.pop(context);
