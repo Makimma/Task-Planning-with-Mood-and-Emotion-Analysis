@@ -13,20 +13,25 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final AuthService _authService = AuthService();
   bool _notificationsEnabled = true;
-  String _selectedTheme = 'system'; // default
+  late String _selectedTheme;
 
   @override
   void initState() {
     super.initState();
     _loadNotificationSetting();
-    _loadTheme();
+    _selectedTheme = _getCurrentThemeMode();
   }
 
-  Future<void> _loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _selectedTheme = prefs.getString('theme_mode') ?? 'system';
-    });
+  String _getCurrentThemeMode() {
+    final mode = MyApp.of(context).themeMode;
+    switch (mode) {
+      case ThemeMode.light:
+        return 'light';
+      case ThemeMode.dark:
+        return 'dark';
+      default:
+        return 'system';
+    }
   }
 
   Future<void> _changeTheme(String value) async {
@@ -36,7 +41,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _selectedTheme = value;
     });
 
-    // применяем в main.dart через глобальный доступ
     final mode = {
       'light': ThemeMode.light,
       'dark': ThemeMode.dark,

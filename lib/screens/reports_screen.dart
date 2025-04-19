@@ -15,7 +15,7 @@ class ReportsScreen extends StatefulWidget {
   _ReportsScreenState createState() => _ReportsScreenState();
 }
 
-class _ReportsScreenState extends State<ReportsScreen> {
+class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveClientMixin {
   String selectedPeriod = "Неделя";
   int tasksThisWeek = 0;
   int tasksThisMonth = 0;
@@ -31,39 +31,103 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Map<String, int> moodProductivity = {};
 
   bool isLoading = false;
+  bool _isInitialized = false;
+
+  // Кэш для хранения данных по периодам
+  Map<String, Map<String, dynamic>> _periodCache = {};
 
   StreamSubscription? _moodProductivitySubscription;
+  StreamSubscription? _tasksSubscription;
+  StreamSubscription? _moodsSubscription;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _fetchTaskCounts();
-    _fetchMoodHistory();
-    _fetchMoodProductivity();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    if (_isInitialized && _periodCache.containsKey(selectedPeriod)) {
+      _restoreFromCache();
+      return;
+    }
+    
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      _moodProductivitySubscription?.cancel();
+      _tasksSubscription?.cancel();
+      _moodsSubscription?.cancel();
+
+      await _fetchTaskCounts();
+      await _fetchMoodHistory();
+      await _fetchMoodProductivity();
+    } catch (e) {
+      print('Error initializing data: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          _isInitialized = true;
+        });
+      }
+    }
+  }
+
+  void _restoreFromCache() {
+    final cachedData = _periodCache[selectedPeriod]!;
+    setState(() {
+      tasksThisWeek = cachedData['tasksThisWeek'];
+      tasksThisMonth = cachedData['tasksThisMonth'];
+      moodData = List<Map<String, dynamic>>.from(cachedData['moodData']);
+      dominantMood = cachedData['dominantMood'];
+      positiveDaysPercentage = cachedData['positiveDaysPercentage'];
+      negativeDaysPercentage = cachedData['negativeDaysPercentage'];
+      categoryCounts = Map<String, int>.from(cachedData['categoryCounts']);
+      priorityCounts = Map<String, int>.from(cachedData['priorityCounts']);
+      moodProductivity = Map<String, int>.from(cachedData['moodProductivity']);
+    });
+  }
+
+  void _saveToCache() {
+    _periodCache[selectedPeriod] = {
+      'tasksThisWeek': tasksThisWeek,
+      'tasksThisMonth': tasksThisMonth,
+      'moodData': moodData,
+      'dominantMood': dominantMood,
+      'positiveDaysPercentage': positiveDaysPercentage,
+      'negativeDaysPercentage': negativeDaysPercentage,
+      'categoryCounts': categoryCounts,
+      'priorityCounts': priorityCounts,
+      'moodProductivity': moodProductivity,
+    };
   }
 
   @override
   void dispose() {
     _moodProductivitySubscription?.cancel();
+    _tasksSubscription?.cancel();
+    _moodsSubscription?.cancel();
     super.dispose();
   }
 
-  void _fetchTaskCounts() async {
-    setState(() {
-      isLoading = true;
-    });
-
+  Future<void> _fetchTaskCounts() async {
     User? user = TaskRepository.getCurrentUser();
+    if (user == null) return;
 
     DateTime now = DateTime.now();
     DateTime today = DateTime(now.year, now.month, now.day);
-
     DateTime startDate = selectedPeriod == "Неделя"
         ? today.subtract(Duration(days: 7))
         : today.subtract(Duration(days: 30));
 
-    // Используем Stream для получения кэшированных данных выполненных задач
-    TaskRepository.getTasksStream("completed").listen((snapshot) {
+    _tasksSubscription?.cancel();
+    _tasksSubscription = TaskRepository.getTasksStream("completed").listen((snapshot) {
       int weekCount = 0;
       int monthCount = 0;
       Map<String, int> categoryData = {};
@@ -78,32 +142,29 @@ class _ReportsScreenState extends State<ReportsScreen> {
             monthCount++;
           }
 
-          // Собираем статистику по категориям
           String category = doc['category'];
           categoryData[category] = (categoryData[category] ?? 0) + 1;
 
-          // Собираем статистику по приоритетам
           String priority = doc['priority'];
           priorityData[priority] = (priorityData[priority] ?? 0) + 1;
         }
       }
 
-      setState(() {
-        tasksThisWeek = weekCount;
-        tasksThisMonth = monthCount;
-        categoryCounts = categoryData;
-        priorityCounts = priorityData;
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          tasksThisWeek = weekCount;
+          tasksThisMonth = monthCount;
+          categoryCounts = categoryData;
+          priorityCounts = priorityData;
+        });
+        _saveToCache();
+      }
     }, onError: (error) {
-      setState(() {
-        isLoading = false;
-      });
       print('Error fetching task counts: $error');
     });
   }
 
-  void _fetchMoodHistory() async {
+  Future<void> _fetchMoodHistory() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -112,8 +173,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ? now.subtract(Duration(days: 7))
         : now.subtract(Duration(days: 30));
 
-    // Используем Stream для получения кэшированных данных
-    FirebaseFirestore.instance
+    _moodsSubscription?.cancel();
+    _moodsSubscription = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .collection('moods')
@@ -139,11 +200,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
         }
       }
 
-      setState(() {
-        this.moodData = moodData;
-      });
-
-      _calculateMoodStatistics(moods);
+      if (mounted) {
+        setState(() {
+          this.moodData = moodData;
+        });
+        _calculateMoodStatistics(moods);
+        _saveToCache();
+      }
     });
   }
 
@@ -202,10 +265,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
               onPeriodChanged: (value) {
                 setState(() {
                   selectedPeriod = value;
-                  _fetchTaskCounts();
-                  _fetchMoodHistory();
-                  _fetchMoodProductivity();
+                  _isInitialized = false; // Сбрасываем флаг инициализации
                 });
+                _initializeData(); // Загружаем новые данные
               },
             ),
           ],
@@ -389,7 +451,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  void _fetchMoodProductivity() async {
+  Future<void> _fetchMoodProductivity() async {
     setState(() {
       isLoading = true;
     });
