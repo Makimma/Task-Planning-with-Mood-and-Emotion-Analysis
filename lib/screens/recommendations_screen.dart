@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,10 +15,15 @@ class RecommendationsScreen extends StatefulWidget {
   _RecommendationsScreenState createState() => _RecommendationsScreenState();
 }
 
-class _RecommendationsScreenState extends State<RecommendationsScreen> with WidgetsBindingObserver {
+class _RecommendationsScreenState extends State<RecommendationsScreen> with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   String? currentMood;
   bool isOnline = true;
   List<Map<String, dynamic>> cachedTasks = [];
+  bool _isInitialized = false;
+  StreamSubscription? _tasksSubscription;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -29,6 +35,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tasksSubscription?.cancel();
     super.dispose();
   }
 
@@ -40,6 +47,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
   }
 
   Future<void> _initializeScreen() async {
+    if (_isInitialized) return;
+
     await _checkConnectivity();
     final cachedMood = await _loadMoodFromCache();
     if (cachedMood != null && mounted) {
@@ -51,6 +60,35 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
     if (isOnline) {
       await _fetchUserMood();
     }
+
+    _initializeTasks();
+  }
+
+  void _initializeTasks() {
+    _tasksSubscription?.cancel();
+    _tasksSubscription = TaskRepository.getTasksStream('active').listen((snapshot) {
+      if (!mounted) return;
+
+      List<Map<String, dynamic>> tasks = snapshot.docs.map((doc) {
+        return {
+          'id': doc.id,
+          ...doc.data() as Map<String, dynamic>,
+        };
+      }).toList();
+
+      tasks.sort((a, b) {
+        final priorityA = _calculatePriority(a);
+        final priorityB = _calculatePriority(b);
+        return priorityB.compareTo(priorityA);
+      });
+
+      setState(() {
+        cachedTasks = tasks;
+        _isInitialized = true;
+      });
+    }, onError: (error) {
+      print('Error fetching tasks: $error');
+    });
   }
 
   Future<void> _checkConnectivity() async {
@@ -198,10 +236,14 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: AppBar(title: Text("Рекомендации")),
       body: RefreshIndicator(
-        onRefresh: _initializeScreen,
+        onRefresh: () async {
+          _isInitialized = false;
+          await _initializeScreen();
+        },
         child: Padding(
           padding: EdgeInsets.all(16),
           child: Column(
@@ -245,55 +287,37 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
   }
 
   Widget _buildTaskList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: TaskRepository.getTasksStream('active'),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
+    if (!_isInitialized) {
+      return Center(child: CircularProgressIndicator());
+    }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(child: Text("Нет активных задач"));
-        }
+    if (cachedTasks.isEmpty) {
+      return Center(child: Text("Нет активных задач"));
+    }
 
-        List<Map<String, dynamic>> tasks = snapshot.data!.docs.map((doc) {
-          return {
-            'id': doc.id,
-            ...doc.data() as Map<String, dynamic>,
-          };
-        }).toList();
+    return ListView.builder(
+      itemCount: cachedTasks.length,
+      itemBuilder: (context, index) {
+        final task = cachedTasks[index];
 
-        tasks.sort((a, b) {
-          final priorityA = _calculatePriority(a);
-          final priorityB = _calculatePriority(b);
-          return priorityB.compareTo(priorityA);
-        });
-
-        return ListView.builder(
-          itemCount: tasks.length,
-          itemBuilder: (context, index) {
-            final task = tasks[index];
-
-            return Dismissible(
-              key: Key(task['id']),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                color: Colors.red,
-                alignment: Alignment.centerRight,
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Icon(Icons.delete, color: Colors.white, size: 30),
-              ),
-              confirmDismiss: (direction) async {
-                return await TaskActions.showDeleteConfirmation(context, task['id']);
-              },
-              child: TaskCard(
-                task: task,
-                isCompleted: false,
-                onEdit: () => TaskActions.showEditTaskDialog(context, task),
-                onComplete: () => TaskActions.completeTask(task['id'], context),
-              ),
-            );
+        return Dismissible(
+          key: Key(task['id']),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            color: Colors.red,
+            alignment: Alignment.centerRight,
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Icon(Icons.delete, color: Colors.white, size: 30),
+          ),
+          confirmDismiss: (direction) async {
+            return await TaskActions.showDeleteConfirmation(context, task['id']);
           },
+          child: TaskCard(
+            task: task,
+            isCompleted: false,
+            onEdit: () => TaskActions.showEditTaskDialog(context, task),
+            onComplete: () => TaskActions.completeTask(task['id'], context),
+          ),
         );
       },
     );
