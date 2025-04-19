@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class CategoryService {
   static const String _apiKey = "AIzaSyCWimDE_6lk378H3VMBPegyoMu6soDQxv4";
-  static const String _baseUrl = "https://language.googleapis.com/v1/documents:classifyText?key=$_apiKey";
+  static const String _baseUrl = "https://language.googleapis.com/v2/documents:classifyText?key=$_apiKey";
 
   static String _mapGoogleCategory(String googleCategory) {
     const categoryMap = {
@@ -95,34 +94,32 @@ class CategoryService {
     final requestBody = {
       "document": {
         "type": "PLAIN_TEXT",
-        "content": text,
-        "language": "en"
+        "content": text
       }
     };
 
     try {
       final response = await http.post(
         Uri.parse(_baseUrl),
-        headers: {"Content-Type": "application/json"},
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestBody),
-      ).timeout(Duration(seconds: 10));
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      List categories = data["categories"];
-
-      if (categories.isNotEmpty) {
-        final googleCategory = categories[0]["name"];
-        return _mapGoogleCategory(googleCategory);
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse['categories'] != null && jsonResponse['categories'].isNotEmpty) {
+          final categories = jsonResponse['categories'] as List;
+          final topCategory = categories.first['name'] as String;
+          final mappedCategory = _mapGoogleCategory(topCategory);
+          return mappedCategory;
+        }
       }
-    }
-    } on SocketException catch (_) {
-      throw Exception("Нет подключения к интернету");
-    } on TimeoutException catch (_) {
-      throw Exception("Превышено время ожидания");
     } catch (e) {
-      throw Exception("Ошибка: ${e.toString()}");
+      // throw Exception("Ошибка: ${e.toString()}");
+      throw Exception("Что-то пошло не так");
     }
+    
     return 'Другое';
   }
 }

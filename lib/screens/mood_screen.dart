@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
 import '../services/nlp_service.dart';
-import '../services/translation_service.dart';
 import '../widgets/mood_selector.dart';
 
 class MoodScreen extends StatefulWidget {
@@ -223,18 +222,10 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver {
     // Определяем настроение только если есть интернет
     if (selectedMood.isEmpty && note.isNotEmpty && isOnline) {
       try {
-        String? translatedText = await TranslationService.translateText(note, "en");
         if (!mounted) return;
-        
-        if (translatedText == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Ошибка перевода. Пожалуйста, выберите настроение вручную.")),
-          );
-          return;
-        }
 
         Map<String, double>? sentimentResult =
-            await NaturalLanguageService.analyzeSentiment(translatedText);
+            await NaturalLanguageService.analyzeSentiment(note);
         if (!mounted) return;
         
         if (sentimentResult != null) {

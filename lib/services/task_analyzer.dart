@@ -5,7 +5,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../services/category_service.dart';
 import '../services/nlp_service.dart';
-import '../services/translation_service.dart';
 import '../constants/task_constants.dart';
 
 class TaskAnalyzer {
@@ -26,20 +25,8 @@ class TaskAnalyzer {
       final formattedTitle = title.trim().endsWith('.') ? title.trim() : "${title.trim()}.";
       final fullText = "$formattedTitle $comment";
 
-      if (fullText.split(RegExp(r'\s+')).length < 20) {
-        onError('Добавьте больше деталей, минимум 20 слов');
-        return;
-      }
-
-      final translatedText = await TranslationService.translateText(fullText, "en");
-      if (translatedText == null) {
-        onError('Ошибка перевода текста');
-        return;
-      }
-
-      final category = await CategoryService.classifyText(translatedText);
-      final resolvedCategory = _resolveCategory(category);
-
+      final response = await CategoryService.classifyText(fullText);
+      final resolvedCategory = _resolveCategory(response);
       onSuccess(resolvedCategory);
     } catch (e) {
       _handleError(e, onError);
