@@ -108,55 +108,85 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
       child: Scaffold(
         appBar: AppBar(
           titleSpacing: 0,
-          actions: [
-            IconButton(
-              icon: Icon(Icons.filter_list),
-              onPressed: () => showDialog(
-                context: context,
-                builder: (context) => FilterDialog(
-                  selectedCategory: selectedCategory,
-                  selectedPriorities: selectedPriorities,
-                  minLoad: minLoad,
-                  maxLoad: maxLoad,
-                  onCategoryChanged: (value) {
-                    setState(() => selectedCategory = value);
-                    _applyFilters();
-                  },
-                  onPriorityChanged: (value) {
-                    setState(() => selectedPriorities = value);
-                    _applyFilters();
-                  },
-                  onLoadChanged: (newMin, newMax) {
-                    setState(() {
-                      minLoad = newMin;
-                      maxLoad = newMax;
-                    });
+          elevation: 0,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          title: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Поиск задач...',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    onChanged: (value) {
+                      // TODO: Implement search
+                    },
+                  ),
+                ),
+                SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(Icons.filter_list),
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (context) => FilterDialog(
+                      selectedCategory: selectedCategory,
+                      selectedPriorities: selectedPriorities,
+                      minLoad: minLoad,
+                      maxLoad: maxLoad,
+                      onCategoryChanged: (value) {
+                        setState(() => selectedCategory = value);
+                        _applyFilters();
+                      },
+                      onPriorityChanged: (value) {
+                        setState(() => selectedPriorities = value);
+                        _applyFilters();
+                      },
+                      onLoadChanged: (newMin, newMax) {
+                        setState(() {
+                          minLoad = newMin;
+                          maxLoad = newMax;
+                        });
+                        _applyFilters();
+                      },
+                    ),
+                  ),
+                ),
+                AppDropdown(
+                  selectedOption: selectedSortOption,
+                  options: ["Дата создания", "Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
+                  maxWidth: 140,
+                  onOptionSelected: (value) {
+                    setState(() => selectedSortOption = value);
                     _applyFilters();
                   },
                 ),
-              ),
+              ],
             ),
-          ],
-          title: Row(
-            children: [
-              SizedBox(width: 16),
-              AppDropdown(
-                selectedOption: selectedSortOption,
-                options: ["Дата создания", "Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
-                maxWidth: 140,
-                onOptionSelected: (value) {
-                  setState(() => selectedSortOption = value);
-                  _applyFilters();
-                },
-              ),
-              SizedBox(width: 10),
-            ],
           ),
           bottom: PreferredSize(
             preferredSize: Size.fromHeight(48),
             child: Container(
-              color: Theme.of(context).scaffoldBackgroundColor,
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).dividerColor,
+                    width: 1,
+                  ),
+                ),
+              ),
               child: TabBar(
+                indicatorSize: TabBarIndicatorSize.label,
+                indicatorWeight: 3,
                 indicatorColor: Theme.of(context).colorScheme.primary,
                 labelColor: Theme.of(context).textTheme.bodyLarge?.color,
                 unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
@@ -194,11 +224,26 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
 
     if (status == "active") {
       if (filteredTasks.isEmpty) {
-        return Center(child: Text("Нет задач"));
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.task_alt, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                "Нет задач",
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        );
       }
 
       return ListView.builder(
-        padding: EdgeInsets.only(top: 16, bottom: 80),
+        padding: EdgeInsets.only(top: 8, bottom: 80),
         itemCount: filteredTasks.length,
         itemBuilder: (context, index) {
           final task = filteredTasks[index];
@@ -206,10 +251,47 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
             key: Key(task['id']),
             direction: DismissDirection.endToStart,
             background: Container(
-              color: Colors.red,
-              alignment: Alignment.centerRight,
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Icon(Icons.delete, color: Colors.white, size: 30),
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.red.shade200,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.delete_forever,
+                          color: Colors.red.shade700,
+                          size: 24,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Удалить',
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                ],
+              ),
             ),
             confirmDismiss: (direction) async {
               return await TaskActions.showDeleteConfirmation(context, task['id']);
@@ -232,7 +314,22 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text("Нет выполненных задач"));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_outline, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    "Нет выполненных задач",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
 
           List<Map<String, dynamic>> tasks = snapshot.data!.docs.map((doc) {
@@ -243,14 +340,14 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
           }).toList();
 
           return ListView.builder(
-            padding: EdgeInsets.only(top: 16, bottom: 80),
+            padding: EdgeInsets.only(top: 8, bottom: 80),
             itemCount: tasks.length,
             itemBuilder: (context, index) {
               final task = tasks[index];
               return TaskCard(
                 task: task,
                 isCompleted: true,
-                onEdit: () => TaskActions.showEditTaskDialog(context, task),
+                onEdit: null,
                 onComplete: () => TaskActions.completeTask(task['id'], context),
               );
             },
