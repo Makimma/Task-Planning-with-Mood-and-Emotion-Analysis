@@ -9,6 +9,7 @@ import '../widgets/add_task_dialog.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/filter_task_dialog.dart';
 import '../widgets/sort_selector.dart';
+import '../widgets/search_field.dart';
 
 class TasksScreen extends StatefulWidget {
   @override
@@ -18,6 +19,11 @@ class TasksScreen extends StatefulWidget {
 class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClientMixin {
   List<Map<String, dynamic>> allTasks = [];
   List<Map<String, dynamic>> filteredTasks = [];
+  String searchQuery = '';
+
+  // Add state variables for controlling visibility
+  bool isSearchVisible = true;
+  bool isSortVisible = false;
 
   Set<String> selectedPriorities = {};
   double minLoad = 1, maxLoad = 5;
@@ -87,6 +93,7 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
       selectedPriorities: selectedPriorities,
       minLoad: minLoad,
       maxLoad: maxLoad,
+      searchQuery: searchQuery,
     );
 
     TaskFilter.sortTasks(
@@ -116,21 +123,37 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Поиск задач...',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).cardColor,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: AnimatedCrossFade(
+                    duration: Duration(milliseconds: 300),
+                    firstChild: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.search),
+                          onPressed: () {
+                            setState(() {
+                              isSearchVisible = true;
+                              isSortVisible = false;
+                            });
+                          },
+                        ),
+                      ],
                     ),
-                    onChanged: (value) {
-                      // TODO: Implement search
-                    },
+                    secondChild: SearchField(
+                      onChanged: (value) {
+                        setState(() => searchQuery = value);
+                        _applyFilters();
+                      },
+                      onClose: () {
+                        setState(() {
+                          isSearchVisible = false;
+                          searchQuery = '';
+                        });
+                        _applyFilters();
+                      },
+                    ),
+                    crossFadeState: isSearchVisible 
+                        ? CrossFadeState.showSecond 
+                        : CrossFadeState.showFirst,
                   ),
                 ),
                 SizedBox(width: 8),
@@ -161,13 +184,37 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
-                SortSelector(
-                  selectedOption: selectedSortOption,
-                  onOptionSelected: (value) {
-                    setState(() => selectedSortOption = value);
-                    _applyFilters();
-                  },
+                AnimatedCrossFade(
+                  duration: Duration(milliseconds: 300),
+                  firstChild: Tooltip(
+                    message: "Сортировка: $selectedSortOption",
+                    child: IconButton(
+                      icon: Icon(_getSortIcon()),
+                      onPressed: () {
+                        setState(() {
+                          isSortVisible = true;
+                          isSearchVisible = false;
+                          searchQuery = '';
+                        });
+                        _applyFilters();
+                      },
+                    ),
+                  ),
+                  secondChild: SortSelector(
+                    selectedOption: selectedSortOption,
+                    onOptionSelected: (value) {
+                      setState(() => selectedSortOption = value);
+                      _applyFilters();
+                    },
+                    onClose: () {
+                      setState(() {
+                        isSortVisible = false;
+                      });
+                    },
+                  ),
+                  crossFadeState: isSortVisible 
+                      ? CrossFadeState.showSecond 
+                      : CrossFadeState.showFirst,
                 ),
               ],
             ),
@@ -354,6 +401,21 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
           );
         },
       );
+    }
+  }
+
+  IconData _getSortIcon() {
+    switch (selectedSortOption) {
+      case "Дата создания":
+        return Icons.access_time_rounded;
+      case "Дедлайн":
+        return Icons.calendar_today_rounded;
+      case "Приоритет":
+        return Icons.priority_high_rounded;
+      case "Эмоц. нагрузка":
+        return Icons.psychology_rounded;
+      default:
+        return Icons.sort;
     }
   }
 }

@@ -9,9 +9,17 @@ class TaskFilter {
     required Set<String> selectedPriorities,
     required double minLoad,
     required double maxLoad,
+    String? searchQuery,
   }) {
     return tasks.where((task) {
       bool matches = true;
+
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        final title = (task['title'] as String).toLowerCase();
+        final description = (task['description'] as String?)?.toLowerCase() ?? '';
+        final query = searchQuery.toLowerCase();
+        matches &= title.contains(query) || description.contains(query);
+      }
 
       if (selectedCategory != TaskConstants.categories[0]) {
         matches &= task['category'] == selectedCategory;
@@ -47,7 +55,7 @@ class TaskFilter {
           final priorityOrder = {"high": 3, "medium": 2, "low": 1};
           return priorityOrder[a['priority']]!
               .compareTo(priorityOrder[b['priority']]!);
-        case "Эмоциональная нагрузка":
+        case "Эмоц. нагрузка":
           return a['emotionalLoad'].compareTo(b['emotionalLoad']);
         default:
           return 0;

@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 class SortSelector extends StatefulWidget {
   final String selectedOption;
   final Function(String) onOptionSelected;
+  final Function() onClose;
 
   const SortSelector({
     required this.selectedOption,
     required this.onOptionSelected,
+    required this.onClose,
     Key? key,
   }) : super(key: key);
 
@@ -25,14 +27,14 @@ class _SortSelectorState extends State<SortSelector> with SingleTickerProviderSt
     "Дата создания": Icons.access_time_rounded,
     "Дедлайн": Icons.calendar_today_rounded,
     "Приоритет": Icons.priority_high_rounded,
-    "Эмоциональная нагрузка": Icons.psychology_rounded,
+    "Эмоц. нагрузка": Icons.psychology_rounded,
   };
 
   final List<Map<String, dynamic>> _options = [
     {"icon": Icons.access_time_rounded, "label": "Дата создания"},
     {"icon": Icons.calendar_today_rounded, "label": "Дедлайн"},
     {"icon": Icons.priority_high_rounded, "label": "Приоритет"},
-    {"icon": Icons.psychology_rounded, "label": "Эмоциональная нагрузка"},
+    {"icon": Icons.psychology_rounded, "label": "Эмоц. нагрузка"},
   ];
 
   @override
@@ -85,6 +87,15 @@ class _SortSelectorState extends State<SortSelector> with SingleTickerProviderSt
         });
       }
     });
+  }
+
+  void _handleClose() {
+    if (_isExpanded) {
+      _controller.reverse().then((_) {
+        _removeOverlay();
+      });
+    }
+    widget.onClose();
   }
 
   void _showOverlay() {
@@ -208,70 +219,83 @@ class _SortSelectorState extends State<SortSelector> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _toggleExpanded,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: Theme.of(context).dividerColor,
-            width: 1,
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).shadowColor.withOpacity(0.05),
+            blurRadius: 8,
+            offset: Offset(0, 2),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedSwitcher(
-              duration: Duration(milliseconds: 400),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return ScaleTransition(
-                  scale: animation,
-                  child: FadeTransition(
-                    opacity: animation,
-                    child: child,
-                  ),
-                );
-              },
-              child: Icon(
-                _sortIcons[widget.selectedOption] ?? Icons.sort_rounded,
-                key: ValueKey<String>(widget.selectedOption),
-                size: 22,
-                color: _isExpanded 
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).textTheme.bodyMedium?.color,
-              ),
-            ),
-            AnimatedSize(
-              duration: Duration(milliseconds: 400),
-              curve: Curves.easeOutCubic,
-              child: SizedBox(
-                width: _isExpanded ? null : 0,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AnimatedOpacity(
-                      duration: Duration(milliseconds: 400),
-                      curve: Curves.easeOutCubic,
-                      opacity: _isExpanded ? 1.0 : 0.0,
-                      child: Padding(
-                        padding: EdgeInsets.only(left: 8),
-                        child: Text(
-                          widget.selectedOption,
-                          style: TextStyle(
-                            fontSize: 14,
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 150;
+          
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: InkWell(
+                  onTap: _toggleExpanded,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isCompact ? 8 : 12,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Tooltip(
+                          message: widget.selectedOption,
+                          child: Icon(
+                            _sortIcons[widget.selectedOption] ?? Icons.sort,
+                            size: 20,
                             color: Theme.of(context).textTheme.bodyMedium?.color,
                           ),
                         ),
-                      ),
+                        if (!isCompact) ...[
+                          SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              widget.selectedOption,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Theme.of(context).textTheme.bodyMedium?.color,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Icon(
+                            _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                            size: 20,
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+              if (!isCompact)
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  constraints: BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  icon: Icon(Icons.keyboard_arrow_right, size: 20),
+                  onPressed: _handleClose,
+                ),
+            ],
+          );
+        },
       ),
     );
   }
