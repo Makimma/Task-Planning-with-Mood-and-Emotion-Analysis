@@ -8,6 +8,7 @@ import '../services/task_filter.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/filter_task_dialog.dart';
+import '../widgets/sort_selector.dart';
 
 class TasksScreen extends StatefulWidget {
   @override
@@ -160,10 +161,9 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
                     ),
                   ),
                 ),
-                AppDropdown(
+                SizedBox(width: 8),
+                SortSelector(
                   selectedOption: selectedSortOption,
-                  options: ["Дата создания", "Дедлайн", "Приоритет", "Эмоциональная нагрузка"],
-                  maxWidth: 140,
                   onOptionSelected: (value) {
                     setState(() => selectedSortOption = value);
                     _applyFilters();
