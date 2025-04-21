@@ -9,10 +9,10 @@ class TaskCard extends StatelessWidget {
 
   const TaskCard({
     required this.task,
-    this.onEdit,
-    this.onComplete,
+      this.onEdit,
+      this.onComplete,
     required this.isCompleted,
-    super.key,
+      super.key,
   });
 
   @override
@@ -45,28 +45,28 @@ class TaskCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Row(
-                      children: [
+      child: Row(
+        children: [
                         if (!isCompleted) ...[
-                          Container(
+          Container(
                             width: 4,
                             height: 24,
-                            decoration: BoxDecoration(
+            decoration: BoxDecoration(
                               color: priorityColor,
                               borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
+              ),
+            ),
                           SizedBox(width: 12),
                         ],
-                        Expanded(
+          Expanded(
                           child: Text(
-                            task['title'],
-                            style: TextStyle(
+                task['title'],
+                style: TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                               color: Theme.of(context).textTheme.titleMedium?.color,
-                            ),
-                          ),
+                ),
+              ),
                         ),
                       ],
                     ),
@@ -107,7 +107,7 @@ class TaskCard extends StatelessWidget {
               ),
               SizedBox(height: 8),
               Row(
-                children: [
+                      children: [
                   _buildInfoChip(
                     context,
                     icon: Icons.access_time,
@@ -120,7 +120,7 @@ class TaskCard extends StatelessWidget {
                     icon: Icons.psychology,
                     label: 'Нагрузка: ${task['emotionalLoad']}',
                     color: emotionalLoadColor,
-                  ),
+                        ),
                 ],
               ),
               if (isOverdue) ...[
