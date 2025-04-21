@@ -91,6 +91,12 @@ class CategoryService {
   }
 
   static Future<String?> classifyText(String text) async {
+    // Check if text contains actual words
+    final trimmedText = text.trim();
+    if (trimmedText.isEmpty || trimmedText.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length == 0) {
+      return 'Другое';
+    }
+
     final requestBody = {
       "document": {
         "type": "PLAIN_TEXT",

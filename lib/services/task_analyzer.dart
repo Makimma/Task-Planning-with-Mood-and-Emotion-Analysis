@@ -15,15 +15,23 @@ class TaskAnalyzer {
     required Function(String) onSuccess,
     required Function(String) onError,
   }) async {
+    // Check if both fields are empty or contain only whitespace
+    final trimmedTitle = title.trim();
+    final trimmedComment = comment.trim();
+    if (trimmedTitle.isEmpty && trimmedComment.isEmpty) {
+      onError('Введите название или комментарий для анализа');
+      return;
+    }
+
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
       if (connectivityResult == ConnectivityResult.none) {
-        onError('⚠️ Нет интернет-соединения');
+        onError('Отсутствует подключение к интернету');
         return;
       }
 
-      final formattedTitle = title.trim().endsWith('.') ? title.trim() : "${title.trim()}.";
-      final fullText = "$formattedTitle $comment";
+      final formattedTitle = trimmedTitle.endsWith('.') ? trimmedTitle : "$trimmedTitle.";
+      final fullText = "$formattedTitle $trimmedComment";
 
       final response = await CategoryService.classifyText(fullText);
       final resolvedCategory = _resolveCategory(response);
@@ -40,19 +48,27 @@ class TaskAnalyzer {
     required Function(int) onSuccess,
     required Function(String) onError,
   }) async {
+    // Check if both fields are empty or contain only whitespace
+    final trimmedTitle = title.trim();
+    final trimmedComment = comment.trim();
+    if (trimmedTitle.isEmpty && trimmedComment.isEmpty) {
+      onError('Введите название или комментарий для анализа');
+      return;
+    }
+
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
       if (connectivityResult == ConnectivityResult.none) {
-        onError('⚠️ Нет интернет-соединения');
+        onError('Отсутствует подключение к интернету');
         return;
       }
 
-      final formattedTitle = title.trim().endsWith('.') ? title.trim() : "${title.trim()}.";
-      final fullText = "$formattedTitle $comment";
+      final formattedTitle = trimmedTitle.endsWith('.') ? trimmedTitle : "$trimmedTitle.";
+      final fullText = "$formattedTitle $trimmedComment";
 
       final sentiment = await NaturalLanguageService.analyzeSentiment(fullText);
       if (sentiment == null) {
-        onError('Ошибка анализа эмоциональной нагрузки');
+        onError('Не удалось определить эмоциональную нагрузку');
         return;
       }
 
@@ -84,11 +100,16 @@ class TaskAnalyzer {
 
   static void _handleError(dynamic error, Function(String) onError) {
     if (error is SocketException) {
-      onError('📡 Ошибка подключения к серверу');
+      onError('Сервер недоступен. Проверьте подключение 🌐');
     } else if (error is TimeoutException) {
-      onError('⏳ Превышено время ожидания');
+      onError('Сервер не отвечает. Попробуйте позже ⏳');
     } else {
-      onError('❌ Ошибка: ${error.toString().split(':').first}');
+      final errorMessage = error.toString().split(':').first;
+      if (errorMessage.contains('Exception')) {
+        onError('Произошла ошибка при анализе 😕');
+      } else {
+        onError('Что-то пошло не так. Попробуйте еще раз 🔄');
+      }
     }
   }
 }
