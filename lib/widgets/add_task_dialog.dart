@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_appp/constants/task_constants.dart';
 import 'package:flutter_appp/services/task_actions.dart';
 import 'package:flutter_appp/services/task_analyzer.dart';
+import 'package:flutter/services.dart';
 
 class AddTaskDialog extends StatefulWidget {
   final Function onTaskAdded;
@@ -23,6 +24,36 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   int reminderOffsetMinutes = 0;
   String? categoryError;
   String? emotionalLoadError;
+  
+  // Add FocusNodes
+  final FocusNode _titleFocusNode = FocusNode();
+  final FocusNode _commentFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleFocusNode.addListener(_onTitleFocusChange);
+    _commentFocusNode.addListener(_onCommentFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _titleFocusNode.dispose();
+    _commentFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onTitleFocusChange() {
+    if (!_titleFocusNode.hasFocus && title.isNotEmpty) {
+      _analyzeParameters(setState);
+    }
+  }
+
+  void _onCommentFocusChange() {
+    if (!_commentFocusNode.hasFocus && (title.isNotEmpty || comment.isNotEmpty)) {
+      _analyzeParameters(setState);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,132 +62,140 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      child: SingleChildScrollView(
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.9,
-          padding: EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Новая задача",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
+      child: GestureDetector(
+        onTap: () {
+          // Dismiss keyboard when tapping outside input fields
+          FocusScope.of(context).unfocus();
+        },
+        child: SingleChildScrollView(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Новая задача",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                    constraints: BoxConstraints(),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16),
-              Form(
-                key: _formKey,
-                child: StatefulBuilder(
-                  builder: (context, setState) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTextField(
-                          label: "Название",
-                          onChanged: (value) => title = value,
-                          validator: _validateTitle,
-                          maxLength: 50,
-                          onSubmitted: (_) => _analyzeParameters(setState),
-                        ),
-                        SizedBox(height: 12),
-                        _buildTextField(
-                          label: "Комментарий",
-                          onChanged: (value) => comment = value,
-                          maxLength: 512,
-                          maxLines: 2,
-                          onSubmitted: (_) => _analyzeParameters(setState),
-                        ),
-                        SizedBox(height: 12),
-                        _buildSectionTitle("Категория"),
-                        SizedBox(height: 4),
-                        _buildCategorySelector(setState),
-                        if (categoryError != null)
-                          Padding(
-                            padding: EdgeInsets.only(top: 4),
-                            child: Text(
-                              categoryError!,
-                              style: TextStyle(color: Colors.red, fontSize: 12),
+                    IconButton(
+                      icon: Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                Form(
+                  key: _formKey,
+                  child: StatefulBuilder(
+                    builder: (context, setState) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTextField(
+                            label: "Название",
+                            onChanged: (value) => title = value,
+                            validator: _validateTitle,
+                            maxLength: 50,
+                            onSubmitted: (_) => _analyzeParameters(setState),
+                            focusNode: _titleFocusNode,
+                          ),
+                          SizedBox(height: 12),
+                          _buildTextField(
+                            label: "Комментарий",
+                            onChanged: (value) => comment = value,
+                            maxLength: 512,
+                            maxLines: 2,
+                            onSubmitted: (_) => _analyzeParameters(setState),
+                            focusNode: _commentFocusNode,
+                          ),
+                          SizedBox(height: 12),
+                          _buildSectionTitle("Категория"),
+                          SizedBox(height: 4),
+                          _buildCategorySelector(setState),
+                          if (categoryError != null)
+                            Padding(
+                              padding: EdgeInsets.only(top: 4),
+                              child: Text(
+                                categoryError!,
+                                style: TextStyle(color: Colors.red, fontSize: 12),
+                              ),
+                            ),
+                          SizedBox(height: 12),
+                          _buildSectionTitle("Эмоциональная нагрузка"),
+                          SizedBox(height: 4),
+                          _buildEmotionalLoadSlider(setState),
+                          SizedBox(height: 12),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              minimumSize: Size(double.infinity, 40),
+                              padding: EdgeInsets.zero,
+                            ),
+                            onPressed: () {
+                              _analyzeCategory(setState);
+                              _analyzeEmotionalLoad(setState);
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text("Обновить параметры"),
+                              ],
                             ),
                           ),
-                        SizedBox(height: 12),
-                        _buildSectionTitle("Эмоциональная нагрузка"),
-                        SizedBox(height: 4),
-                        _buildEmotionalLoadSlider(setState),
-                        SizedBox(height: 12),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                            minimumSize: Size(double.infinity, 40),
-                            padding: EdgeInsets.zero,
-                          ),
-                          onPressed: () {
-                            _analyzeCategory(setState);
-                            _analyzeEmotionalLoad(setState);
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          SizedBox(height: 12),
+                          _buildSectionTitle("Приоритет"),
+                          SizedBox(height: 4),
+                          _buildPrioritySelector(setState),
+                          SizedBox(height: 12),
+                          _buildDateTimeSection(setState),
+                          SizedBox(height: 12),
+                          _buildReminderSection(setState),
+                          SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text("Обновить параметры"),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text(
+                                  "Отмена",
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: () => _submitForm(context),
+                                child: Text("Создать"),
+                              ),
                             ],
                           ),
-                        ),
-                        SizedBox(height: 12),
-                        _buildSectionTitle("Приоритет"),
-                        SizedBox(height: 4),
-                        _buildPrioritySelector(setState),
-                        SizedBox(height: 12),
-                        _buildDateTimeSection(setState),
-                        SizedBox(height: 12),
-                        _buildReminderSection(setState),
-                        SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text(
-                                "Отмена",
-                                style: TextStyle(
-                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onPressed: () => _submitForm(context),
-                              child: Text("Создать"),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  },
+                        ],
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -180,8 +219,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     int? maxLength,
     int? maxLines,
     Function(String)? onSubmitted,
+    required FocusNode focusNode,
   }) {
     return TextFormField(
+      focusNode: focusNode,
       decoration: InputDecoration(
         labelText: label,
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -453,7 +494,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   void _analyzeParameters(StateSetter setState) {
-    if (title.isNotEmpty) {
+    if (title.isNotEmpty || comment.isNotEmpty) {
       _analyzeCategory(setState);
       _analyzeEmotionalLoad(setState);
     }

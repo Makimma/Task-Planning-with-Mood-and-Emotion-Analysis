@@ -104,6 +104,7 @@ class CategoryService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestBody),
       );
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
