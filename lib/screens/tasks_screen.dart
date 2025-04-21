@@ -232,14 +232,46 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
                 ),
               ),
               child: TabBar(
-                indicatorSize: TabBarIndicatorSize.label,
+                indicatorSize: TabBarIndicatorSize.tab,
                 indicatorWeight: 3,
                 indicatorColor: Theme.of(context).colorScheme.primary,
-                labelColor: Theme.of(context).textTheme.bodyLarge?.color,
+                labelColor: Theme.of(context).colorScheme.primary,
                 unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                labelStyle: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
                 tabs: [
-                  Tab(text: 'Активные'),
-                  Tab(text: 'Выполненные'),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.task_alt,
+                          size: 18,
+                        ),
+                        SizedBox(width: 8),
+                        Text('Активные'),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 18,
+                        ),
+                        SizedBox(width: 8),
+                        Text('Выполненные'),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
