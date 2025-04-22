@@ -10,6 +10,8 @@ import 'package:flutter_appp/widgets/task_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_appp/services/task_repository.dart';
 
+import '../widgets/gradient_mood_icon.dart';
+
 class RecommendationsScreen extends StatefulWidget {
   @override
   _RecommendationsScreenState createState() => _RecommendationsScreenState();
@@ -238,7 +240,17 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: AppBar(title: Text("Рекомендации")),
+      appBar: AppBar(
+        title: Text(
+          "Рекомендации",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           _isInitialized = false;
@@ -273,11 +285,62 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
                     ),
                   ),
                 ),
-              SizedBox(height: 10),
+              if (currentMood != null) ...[
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Текущее настроение",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          GradientMoodIcon(
+                            mood: currentMood!,
+                            size: 40,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              currentMood!,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              SizedBox(height: 24),
               Text(
-                "Рекомендуемые задачи:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                "Рекомендуемые задачи",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+              SizedBox(height: 16),
               Expanded(child: _buildTaskList()),
             ],
           ),
@@ -292,10 +355,26 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
     }
 
     if (cachedTasks.isEmpty) {
-      return Center(child: Text("Нет активных задач"));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.task_alt, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              "Нет активных задач",
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(
+      padding: EdgeInsets.only(bottom: 16),
       itemCount: cachedTasks.length,
       itemBuilder: (context, index) {
         final task = cachedTasks[index];
@@ -304,19 +383,69 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
           key: Key(task['id']),
           direction: DismissDirection.endToStart,
           background: Container(
-            color: Colors.red,
-            alignment: Alignment.centerRight,
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Icon(Icons.delete, color: Colors.white, size: 30),
+            margin: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.red.shade200,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.delete_forever,
+                        color: Colors.red.shade700,
+                        size: 24,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Удалить',
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 16),
+              ],
+            ),
           ),
           confirmDismiss: (direction) async {
             return await TaskActions.showDeleteConfirmation(context, task['id']);
           },
-          child: TaskCard(
-            task: task,
-            isCompleted: false,
-            onEdit: () => TaskActions.showEditTaskDialog(context, task),
-            onComplete: () => TaskActions.completeTask(task['id'], context),
+          child: Container(
+            margin: EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TaskCard(
+              task: task,
+              isCompleted: false,
+              onEdit: () => TaskActions.showEditTaskDialog(context, task),
+              onComplete: () => TaskActions.completeTask(task['id'], context),
+            ),
           ),
         );
       },

@@ -19,16 +19,16 @@ class MoodSelector extends StatelessWidget {
       builder: (context, constraints) {
         final itemWidth = constraints.maxWidth / 4;
         
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: moods.map((mood) {
             final isSelected = selectedMood == mood;
-            
+
             return SizedBox(
               width: itemWidth,
-              child: Column(
+            child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+              children: [
                   GestureDetector(
                     onTap: () => onMoodSelected(mood),
                     child: GradientMoodIcon(
@@ -36,23 +36,23 @@ class MoodSelector extends StatelessWidget {
                       size: 56,
                       isSelected: isSelected,
                     ),
-                  ),
+                ),
                   SizedBox(height: 8),
-                  Text(
+                Text(
                     mood,
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                  style: TextStyle(
                       color: isSelected 
                           ? Theme.of(context).colorScheme.primary
                           : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                       fontSize: 13,
-                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
             );
           }).toList(),
         );
