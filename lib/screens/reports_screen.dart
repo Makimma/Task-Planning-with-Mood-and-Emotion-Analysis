@@ -9,6 +9,7 @@ import '../widgets/mood_chart.dart';
 import '../widgets/period_selector.dart';
 import '../widgets/report_card.dart';
 import '../widgets/task_chart.dart';
+import '../widgets/gradient_mood_icon.dart';
 
 class ReportsScreen extends StatefulWidget {
   @override
@@ -203,10 +204,12 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
       if (mounted) {
         setState(() {
           this.moodData = moodData;
+          _calculateMoodStatistics(moods);
         });
-        _calculateMoodStatistics(moods);
         _saveToCache();
       }
+    }, onError: (error) {
+      print('Error fetching mood history: $error');
     });
   }
 
@@ -230,20 +233,23 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
 
       if (type == "Радость" || type == "Спокойствие") {
         positiveDays++;
-      } else {
+      } else if (type == "Грусть" || type == "Усталость") {
         negativeDays++;
       }
     }
 
-    String mostCommonMood =
-        moodCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    String mostCommonMood = moodCounts.entries.isEmpty 
+        ? "Нет данных" 
+        : moodCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
 
     int totalDays = moods.length;
-    setState(() {
-      dominantMood = mostCommonMood;
-      positiveDaysPercentage = (positiveDays / totalDays) * 100;
-      negativeDaysPercentage = (negativeDays / totalDays) * 100;
-    });
+    if (mounted) {
+      setState(() {
+        dominantMood = mostCommonMood;
+        positiveDaysPercentage = totalDays > 0 ? (positiveDays / totalDays) * 100 : 0.0;
+        negativeDaysPercentage = totalDays > 0 ? (negativeDays / totalDays) * 100 : 0.0;
+      });
+    }
   }
 
   @override
@@ -252,11 +258,50 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text("Отчеты"),
+          title: Text(
+            "Отчеты",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          elevation: 0,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           bottom: TabBar(
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicatorWeight: 3,
+            indicatorColor: Theme.of(context).colorScheme.primary,
+            labelColor: Theme.of(context).colorScheme.primary,
+            unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+            labelStyle: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
             tabs: [
-              Tab(text: "Обзор"),
-              Tab(text: "Графики"),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.assessment, size: 18),
+                    SizedBox(width: 8),
+                    Text('Обзор'),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.show_chart, size: 18),
+                    SizedBox(width: 8),
+                    Text('Графики'),
+                  ],
+                ),
+              ),
             ],
           ),
           actions: [
@@ -265,9 +310,9 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
               onPeriodChanged: (value) {
                 setState(() {
                   selectedPeriod = value;
-                  _isInitialized = false; // Сбрасываем флаг инициализации
+                  _isInitialized = false;
                 });
-                _initializeData(); // Загружаем новые данные
+                _initializeData();
               },
             ),
           ],
@@ -290,48 +335,146 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
       return Center(child: CircularProgressIndicator());
     }
 
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Среднее настроение:",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 10),
-          Card(
-            color: Theme.of(context).cardColor,
-            child: Padding(
-              padding: EdgeInsets.all(12),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Преобладающее настроение: $dominantMood",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    "Среднее настроение",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    "Позитивные дни: ${positiveDaysPercentage.toStringAsFixed(1)}%",
-                    style: TextStyle(fontSize: 14),
+                  SizedBox(height: 12),
+                  Row(
+                    children: [
+                      GradientMoodIcon(
+                        mood: dominantMood,
+                        size: 40,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "Преобладающее настроение: $dominantMood",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    "Негативные дни: ${negativeDaysPercentage.toStringAsFixed(1)}%",
-                    style: TextStyle(fontSize: 14),
+                  SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMoodStatCard(
+                          "Позитивные дни",
+                          "${positiveDaysPercentage.toStringAsFixed(1)}%",
+                          Colors.green,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _buildMoodStatCard(
+                          "Негативные дни",
+                          "${negativeDaysPercentage.toStringAsFixed(1)}%",
+                          Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
-          SizedBox(height: 20),
+            SizedBox(height: 24),
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Выполненные задачи",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  ReportCard(
+                    title: selectedPeriod == "Неделя" ? "За неделю" : "За месяц",
+                    count: displayedTasks,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoodStatCard(String title, String value, Color color) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
-            "Выполненные задачи:",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+            ),
           ),
-          SizedBox(height: 10),
-          ReportCard(
-            title: selectedPeriod == "Неделя" ? "За неделю" : "За месяц",
-            count: displayedTasks,
+          SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -349,105 +492,214 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "История настроения:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: 200,
-                maxHeight: 300,
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
-              child: moodData.isEmpty
-                  ? Center(child: Text("Нет данных за этот период", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),))
-                  : MoodChart(moodData: moodData),
-            ),
-
-            SizedBox(height: 40),
-            Text(
-              "Распределение выполненных задач:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: 300,
-                maxHeight: 500,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "История настроения",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: 200,
+                      maxHeight: 300,
+                    ),
+                    child: moodData.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.sentiment_neutral, size: 48, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  "Нет данных за этот период",
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : MoodChart(moodData: moodData),
+                  ),
+                ],
               ),
-              child: categoryCounts.isEmpty && priorityCounts.isEmpty
-                  ? Center(child: Text("Нет данных о задачах", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)))
-                  : TaskCharts(
-                categoryCounts: categoryCounts,
-                priorityCounts: priorityCounts,
+            ),
+            SizedBox(height: 24),
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Распределение задач",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: 300,
+                      maxHeight: 500,
+                    ),
+                    child: categoryCounts.isEmpty && priorityCounts.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.task_alt, size: 48, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  "Нет данных о задачах",
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : TaskCharts(
+                            categoryCounts: categoryCounts,
+                            priorityCounts: priorityCounts,
+                          ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 20),
-            Text(
-              "Распределение выполненных задач по настроению:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: 180,
-                maxHeight: 240,
+            SizedBox(height: 24),
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
-              child: moodProductivity.isEmpty
-                  ? Center(child: Text("Нет данных для анализа"))
-                  : _buildMoodProductivityChart(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Продуктивность по настроению",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: 180,
+                      maxHeight: 240,
+                    ),
+                    child: moodProductivity.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.analytics, size: 48, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  "Нет данных для анализа",
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _buildMoodProductivityChart(),
+                  ),
+                  SizedBox(height: 16),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _buildLegend("Радость", Colors.green),
+                      _buildLegend("Спокойствие", Colors.blue),
+                      _buildLegend("Усталость", Colors.orange),
+                      _buildLegend("Грусть", Colors.purple),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildLegend("Радость", Colors.green),
-                _buildLegend("Спокойствие", Colors.blue),
-                _buildLegend("Усталость", Colors.orange),
-                _buildLegend("Грусть", Colors.purple),
-              ],
-            ),
-            SizedBox(height: 10),
           ],
         ),
       ),
     );
   }
 
-  Future<Map<String, int>> _getCategoryStats(String userId, DateTime startDate) async {
-    final snapshot = await TaskRepository.getTasksByStatus("completed");
-
-    final counts = <String, int>{};
-    for (final doc in snapshot.docs) {
-      final completedAt = doc['completedAt'] as Timestamp?;
-      if (completedAt != null && completedAt.toDate().isAfter(startDate)) {
-        final category = doc['category'];
-        counts[category] = (counts[category] ?? 0) + 1;
-      }
-    }
-    return counts;
-  }
-
-  Future<Map<String, int>> _getPriorityStats(String userId, DateTime startDate) async {
-    final snapshot = await TaskRepository.getTasksByStatus("completed");
-
-    final counts = <String, int>{};
-    for (final doc in snapshot.docs) {
-      final completedAt = doc['completedAt'] as Timestamp?;
-      if (completedAt != null && completedAt.toDate().isAfter(startDate)) {
-        final priority = doc['priority'];
-        counts[priority] = (counts[priority] ?? 0) + 1;
-      }
-    }
-    return counts;
-  }
-
   Widget _buildLegend(String mood, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 12, height: 12, color: color),
-        SizedBox(width: 4),
-        Text(mood, style: TextStyle(fontSize: 12)),
-      ],
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(width: 8),
+          Text(
+            mood,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
