@@ -577,8 +577,8 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
                   SizedBox(height: 12),
                   ConstrainedBox(
                     constraints: BoxConstraints(
-                      minHeight: 300,
-                      maxHeight: 500,
+                      minHeight: 500,
+                      maxHeight: 700,
                     ),
                     child: categoryCounts.isEmpty && priorityCounts.isEmpty
                         ? Center(

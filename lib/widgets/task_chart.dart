@@ -31,7 +31,7 @@ class TaskCharts extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.only(bottom: 16),
           child: Text(
             'По категориям',
             style: TextStyle(
@@ -42,12 +42,12 @@ class TaskCharts extends StatelessWidget {
           ),
         ),
         Expanded(
-          flex: 5,
+          flex: 8,
           child: _buildCategoryChart(context),
         ),
-        SizedBox(height: 25),
+        SizedBox(height: 40),
         Padding(
-          padding: EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.only(bottom: 16),
           child: Text(
             'По приоритету',
             style: TextStyle(
@@ -82,7 +82,7 @@ class TaskCharts extends StatelessWidget {
           BarChartRodData(
             toY: percent,
             color: _getCategoryColor(index),
-            width: 20,
+            width: 27,
             borderSide: BorderSide.none,
             backDrawRodData: BackgroundBarChartRodData(
               show: true,
@@ -95,97 +95,138 @@ class TaskCharts extends StatelessWidget {
       );
     }).toList();
 
-    return Container(
-      padding: EdgeInsets.all(16),
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceBetween,
-          barTouchData: BarTouchData(
-            enabled: true,
-            touchTooltipData: BarTouchTooltipData(
-              getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                final category = sortedEntries[group.x.toInt()].key;
-                final value = sortedEntries[group.x.toInt()].value;
-                return BarTooltipItem(
-                  '$category\n$value ${_getTaskWord(value)} (${rod.toY.toStringAsFixed(1)}%)',
-                  TextStyle(color: Colors.white),
-                );
-              },
+    return Column(
+      children: [
+        Expanded(
+          flex: 4,
+          child: Container(
+            padding: EdgeInsets.all(16),
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceBetween,
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final category = sortedEntries[group.x.toInt()].key;
+                      final value = sortedEntries[group.x.toInt()].value;
+                      return BarTooltipItem(
+                        '$category\n$value ${_getTaskWord(value)} (${rod.toY.toStringAsFixed(1)}%)',
+                        TextStyle(color: Colors.white),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: false,
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 35,
+                      interval: 20,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          '${value.toInt()}%',
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                            fontSize: 12,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context).dividerColor.withOpacity(0.2),
+                      width: 1,
+                    ),
+                    left: BorderSide(
+                      color: Theme.of(context).dividerColor.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                barGroups: bars,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 20,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: Theme.of(context).dividerColor.withOpacity(0.2),
+                      strokeWidth: 1,
+                      dashArray: [5, 5],
+                    );
+                  },
+                ),
+                maxY: 100,
+              ),
             ),
           ),
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  final category = sortedEntries[value.toInt()].key;
-                  return Transform.rotate(
-                    angle: 0,
-                    child: Padding(
-                      padding: EdgeInsets.only(top: 10),
-                      child: Text(
-                        _shortenLabel(category),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Theme.of(context).textTheme.bodySmall?.color,
-                        ),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
+        ),
+        SizedBox(height: 24),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(
+            spacing: 20,
+            runSpacing: 20,
+            alignment: WrapAlignment.center,
+            children: sortedEntries.asMap().entries.map((entry) {
+              final category = entry.value.key;
+              final color = _getCategoryColor(entry.key);
+
+              return Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      color.withOpacity(0.2),
+                      color.withOpacity(0.05),
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: color.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
                       ),
                     ),
-                  );
-                },
-                reservedSize: 30,
-              ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 35,
-                interval: 20,
-                getTitlesWidget: (value, meta) {
-                  return Text(
-                    '${value.toInt()}%',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                      fontSize: 10,
+                    SizedBox(width: 8),
+                    Text(
+                      category,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                     ),
-                  );
-                },
-              ),
-            ),
-            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          borderData: FlBorderData(
-            show: true,
-            border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).dividerColor.withOpacity(0.2),
-                width: 1,
-              ),
-              left: BorderSide(
-                color: Theme.of(context).dividerColor.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-          ),
-          barGroups: bars,
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: false,
-            horizontalInterval: 20,
-            getDrawingHorizontalLine: (value) {
-              return FlLine(
-                color: Theme.of(context).dividerColor.withOpacity(0.2),
-                strokeWidth: 1,
-                dashArray: [5, 5],
+                  ],
+                ),
               );
-            },
+            }).toList(),
           ),
-          maxY: 100,
         ),
-      ),
+      ],
     );
   }
 
@@ -246,20 +287,23 @@ class TaskCharts extends StatelessWidget {
     final total = priorityCounts.values.fold(0, (a, b) => a + b);
     
     return priorityCounts.entries.map((entry) {
-      final percent = total > 0 ? (entry.value / total * 100) : 0;
+      final color = _getPriorityColor(entry.key);
+      final count = entry.value;
+      final percent = total > 0 ? (count / total * 100) : 0;
+
       return Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: 4),
         child: Row(
           children: [
             Container(
-              width: 16,
-              height: 16,
+              width: 12,
+              height: 12,
               decoration: BoxDecoration(
-                color: _getPriorityColor(entry.key),
+                color: color,
                 shape: BoxShape.circle,
               ),
             ),
-            SizedBox(width: 12),
+            SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,14 +311,14 @@ class TaskCharts extends StatelessWidget {
                   Text(
                     priorityLabels[entry.key] ?? entry.key,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                   SizedBox(height: 2),
                   Text(
-                    '${entry.value} ${_getTaskWord(entry.value)} (${percent.toStringAsFixed(1)}%)',
+                    '$count ${_getTaskWord(count)} (${percent.toStringAsFixed(1)}%)',
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
@@ -304,12 +348,6 @@ class TaskCharts extends StatelessWidget {
       default:
         return Colors.grey;
     }
-  }
-
-  String _shortenLabel(String original) {
-    const maxLength = 8;
-    if (original.length <= maxLength) return original;
-    return '${original.substring(0, maxLength)}...';
   }
 
   String _getTaskWord(int count) {
