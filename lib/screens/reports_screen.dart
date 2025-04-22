@@ -632,8 +632,8 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
                   SizedBox(height: 12),
                   ConstrainedBox(
                     constraints: BoxConstraints(
-                      minHeight: 180,
-                      maxHeight: 240,
+                      minHeight: 300,
+                      maxHeight: 400,
                     ),
                     child: moodProductivity.isEmpty
                         ? Center(
@@ -653,18 +653,6 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
                           )
                         : _buildMoodProductivityChart(),
                   ),
-                  SizedBox(height: 16),
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      _buildLegend("Радость", Colors.green),
-                      _buildLegend("Спокойствие", Colors.blue),
-                      _buildLegend("Усталость", Colors.orange),
-                      _buildLegend("Грусть", Colors.purple),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -674,39 +662,159 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
     );
   }
 
-  Widget _buildLegend(String mood, Color color) {
+  Widget _buildMoodProductivityChart() {
+    final total = moodProductivity.values.fold(0, (a, b) => a + b);
+    final sections = moodProductivity.entries.map((entry) {
+      final double percent = total > 0 ? (entry.value / total * 100) : 0;
+      final color = _getMoodColor(entry.key);
+      return PieChartSectionData(
+        value: percent,
+        color: color,
+        title: '${percent.toStringAsFixed(1)}%',
+        radius: 50,
+        titleStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      );
+    }).toList();
+
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 1.5,
+          child: PieChart(
+            PieChartData(
+              sections: sections,
+              centerSpaceRadius: 40,
+              sectionsSpace: 3,
+              pieTouchData: PieTouchData(
+                touchCallback: (FlTouchEvent event, pieTouchResponse) {},
+                enabled: true,
+              ),
+              borderData: FlBorderData(show: false),
+            ),
+            swapAnimationDuration: Duration(milliseconds: 800),
+            swapAnimationCurve: Curves.easeInOutQuart,
+          ),
+        ),
+        SizedBox(height: 24),
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          alignment: WrapAlignment.center,
+          children: [
+            _buildMoodProductivityLegend("Радость", Colors.green),
+            _buildMoodProductivityLegend("Спокойствие", Colors.blue),
+            _buildMoodProductivityLegend("Усталость", Colors.orange),
+            _buildMoodProductivityLegend("Грусть", Colors.purple),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _getTaskWord(int count) {
+    if (count % 10 == 1 && count % 100 != 11) {
+      return 'задача';
+    } else if ([2, 3, 4].contains(count % 10) && ![12, 13, 14].contains(count % 100)) {
+      return 'задачи';
+    } else {
+      return 'задач';
+    }
+  }
+
+  Widget _buildMoodProductivityLegend(String mood, Color color) {
+    final count = moodProductivity[mood] ?? 0;
+    final total = moodProductivity.values.fold(0, (a, b) => a + b);
+    final percent = total > 0 ? (count / total * 100) : 0;
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            color.withOpacity(0.2),
+            color.withOpacity(0.05),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: color.withOpacity(0.3),
           width: 1,
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          SizedBox(width: 8),
-          Text(
-            mood,
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).textTheme.bodyMedium?.color,
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
           ),
         ],
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8),
+              Text(
+                mood,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+              ),
+            ],
+          ),
+          if (count > 0) ...[
+            SizedBox(height: 4),
+            Text(
+              '$count ${_getTaskWord(count)} (${percent.toStringAsFixed(1)}%)',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
+  }
+
+  Color _getMoodColor(String mood) {
+    switch (mood) {
+      case "Радость":
+        return Colors.green;
+      case "Спокойствие":
+        return Colors.blue;
+      case "Усталость":
+        return Colors.orange;
+      case "Грусть":
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
   }
 
   Future<void> _fetchMoodProductivity() async {
@@ -775,51 +883,6 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
       });
       print('Error fetching tasks: $error');
     });
-  }
-
-  Widget _buildMoodProductivityChart() {
-    final total = moodProductivity.values.fold(0, (a, b) => a + b);
-    final sections = moodProductivity.entries.map((entry) {
-      final double percent = total > 0 ? (entry.value / total * 100) : 0;
-      return PieChartSectionData(
-        value: percent,
-        color: _getMoodColor(entry.key),
-        title: '${percent.toStringAsFixed(1)}%',
-        radius: 50,
-        titleStyle: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      );
-    }).toList();
-
-    return PieChart(
-      PieChartData(
-        sections: sections,
-        centerSpaceRadius: 40,
-        sectionsSpace: 2,
-        pieTouchData: PieTouchData(
-          touchCallback: (FlTouchEvent event, pieTouchResponse) {},
-          enabled: true,
-        ),
-      ),
-    );
-  }
-
-  Color _getMoodColor(String mood) {
-    switch (mood) {
-      case "Радость":
-        return Colors.green;
-      case "Спокойствие":
-        return Colors.blue;
-      case "Усталость":
-        return Colors.orange;
-      case "Грусть":
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
   }
 
 }
