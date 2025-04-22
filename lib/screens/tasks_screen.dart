@@ -224,53 +224,51 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
             child: Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
-                border: Border(
-                  bottom: BorderSide(
-                    color: Theme.of(context).dividerColor,
-                    width: 1,
-                  ),
-                ),
               ),
-              child: TabBar(
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicatorWeight: 3,
-                indicatorColor: Theme.of(context).colorScheme.primary,
-                labelColor: Theme.of(context).colorScheme.primary,
-                unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                labelStyle: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-                unselectedLabelStyle: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-                tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.task_alt,
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Text('Активные'),
-                      ],
+              child: Column(
+                children: [
+                  TabBar(
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicatorWeight: 3,
+                    indicatorColor: Theme.of(context).colorScheme.primary,
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                    labelStyle: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Text('Выполненные'),
-                      ],
+                    unselectedLabelStyle: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
+                    tabs: [
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.task_alt,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Активные'),
+                          ],
+                        ),
+                      ),
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Выполненные'),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
