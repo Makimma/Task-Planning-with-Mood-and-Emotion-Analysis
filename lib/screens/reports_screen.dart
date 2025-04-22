@@ -265,8 +265,26 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
               fontWeight: FontWeight.w600,
             ),
           ),
+          titleSpacing: 16,
           elevation: 0,
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          actions: [
+            Center(
+              child: Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: PeriodSelector(
+                  selectedPeriod: selectedPeriod,
+                  onPeriodChanged: (value) {
+                    setState(() {
+                      selectedPeriod = value;
+                      _isInitialized = false;
+                    });
+                    _initializeData();
+                  },
+                ),
+              ),
+            ),
+          ],
           bottom: TabBar(
             indicatorSize: TabBarIndicatorSize.tab,
             indicatorWeight: 3,
@@ -304,18 +322,6 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
               ),
             ],
           ),
-          actions: [
-            PeriodSelector(
-              selectedPeriod: selectedPeriod,
-              onPeriodChanged: (value) {
-                setState(() {
-                  selectedPeriod = value;
-                  _isInitialized = false;
-                });
-                _initializeData();
-              },
-            ),
-          ],
         ),
         body: TabBarView(
           children: [
