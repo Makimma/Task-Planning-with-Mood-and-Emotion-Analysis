@@ -1,52 +1,62 @@
 import 'package:flutter/material.dart';
+import 'gradient_mood_icon.dart';
 
 class MoodSelector extends StatelessWidget {
   final String selectedMood;
   final Function(String) onMoodSelected;
 
-  MoodSelector({required this.selectedMood, required this.onMoodSelected, super.key});
-
-  final List<Map<String, dynamic>> moodOptions = [
-    {"widget": MoodWidget(icon: Icons.sentiment_very_satisfied, color: Colors.amber), "type": "Радость"},
-    {"widget": MoodWidget(icon: Icons.sentiment_dissatisfied, color: Colors.blue), "type": "Грусть"},
-    {"widget": MoodWidget(icon: Icons.sentiment_satisfied, color: Colors.green), "type": "Спокойствие"},
-    {"widget": MoodWidget(icon: Icons.sentiment_very_dissatisfied, color: Colors.red), "type": "Усталость"},
-  ];
+  const MoodSelector({
+    Key? key,
+    required this.selectedMood,
+    required this.onMoodSelected,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: moodOptions.map((mood) {
-        bool isSelected = selectedMood == mood["type"];
+    final List<String> moods = ["Радость", "Грусть", "Спокойствие", "Усталость"];
 
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => onMoodSelected(mood["type"]!),
-            child: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.blue.withOpacity(0.2) : Colors.transparent,
-                    border: isSelected ? Border.all(color: Colors.blue, width: 3) : null,
-                    borderRadius: BorderRadius.circular(50), // Делаем круглым
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = constraints.maxWidth / 4;
+        
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: moods.map((mood) {
+            final isSelected = selectedMood == mood;
+            
+            return SizedBox(
+              width: itemWidth,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () => onMoodSelected(mood),
+                    child: GradientMoodIcon(
+                      mood: mood,
+                      size: 56,
+                      isSelected: isSelected,
+                    ),
                   ),
-                  child: mood["widget"], // Используем кастомный виджет
-                ),
-                SizedBox(height: 5),
-                Text(
-                  mood["type"]!,
-                  style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  SizedBox(height: 8),
+                  Text(
+                    mood,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isSelected 
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontSize: 13,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                ],
+              ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 }

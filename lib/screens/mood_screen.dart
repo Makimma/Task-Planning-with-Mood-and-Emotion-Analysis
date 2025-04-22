@@ -7,6 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
 import '../services/nlp_service.dart';
 import '../widgets/mood_selector.dart';
+import '../widgets/gradient_mood_icon.dart';
 
 class MoodScreen extends StatefulWidget {
   @override
@@ -309,7 +310,17 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: AppBar(title: Text("Настроение")),
+      appBar: AppBar(
+        title: Text(
+          "Настроение",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           _isInitialized = false;
@@ -322,40 +333,60 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Текущее настроение:",
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
                       ),
-                ),
-                SizedBox(height: 5),
-                Card(
-                  color: Theme.of(context).cardColor,
-                  child: Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        Icon(Icons.mood, color: Colors.blue),
-                        SizedBox(width: 10),
-                        Text(
-                          currentMood.isEmpty ? "Настроение не выбрано" : currentMood,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Текущее настроение",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
                         ),
-                      ],
-                    ),
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          GradientMoodIcon(
+                            mood: currentMood,
+                            size: 40,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              currentMood.isEmpty ? "Настроение не выбрано" : currentMood,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 20),
-                Text("Выберите ваше настроение:",
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontSize: 18, fontWeight: FontWeight.bold)),
-                SizedBox(height: 10),
+                SizedBox(height: 24),
+                Text(
+                  "Выберите ваше настроение",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  ),
+                ),
+                SizedBox(height: 12),
                 MoodSelector(
                   selectedMood: selectedMood,
                   onMoodSelected: (mood) {
@@ -368,25 +399,61 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                     });
                   },
                 ),
-                SizedBox(height: 20),
-                TextField(
-                  maxLength: 512,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: "Текстовая заметка",
-                    border: OutlineInputBorder(),
+                SizedBox(height: 24),
+                Text(
+                  "Текстовая заметка",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      note = value;
-                    });
-                  },
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                    ),
+                  ),
+                  child: TextField(
+                    maxLength: 512,
+                    maxLines: 3,
+                    style: TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.all(16),
+                      border: InputBorder.none,
+                      hintText: "Опишите, что повлияло на ваше настроение...",
+                      hintStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        note = value;
+                      });
+                    },
+                  ),
+                ),
+                SizedBox(height: 24),
                 Center(
                   child: ElevatedButton(
                     onPressed: _saveMood,
-                    child: Text("Сохранить"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      "Сохранить",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],

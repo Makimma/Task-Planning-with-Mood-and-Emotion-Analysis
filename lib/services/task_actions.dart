@@ -102,23 +102,29 @@ class TaskActions {
                                 initialValue: title,
                                 decoration: InputDecoration(
                                   labelText: "Название",
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                                      color: Theme.of(context)
+                                          .dividerColor
+                                          .withOpacity(0.3),
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                                      color: Theme.of(context)
+                                          .dividerColor
+                                          .withOpacity(0.3),
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                                 ),
@@ -139,23 +145,29 @@ class TaskActions {
                                 initialValue: comment,
                                 decoration: InputDecoration(
                                   labelText: "Комментарий",
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                                      color: Theme.of(context)
+                                          .dividerColor
+                                          .withOpacity(0.3),
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                                      color: Theme.of(context)
+                                          .dividerColor
+                                          .withOpacity(0.3),
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                                 ),
@@ -169,7 +181,11 @@ class TaskActions {
                                 "Категория",
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.7),
                                 ),
                               ),
                               SizedBox(height: 4),
@@ -179,17 +195,26 @@ class TaskActions {
                                   color: Theme.of(context).colorScheme.surface,
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: Theme.of(context).dividerColor.withOpacity(0.3),
+                                    color: Theme.of(context)
+                                        .dividerColor
+                                        .withOpacity(0.3),
                                   ),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
-                                    value: TaskConstants.categories.contains(category) ? category : "Другое",
+                                    value: TaskConstants.categories
+                                            .contains(category)
+                                        ? category
+                                        : "Другое",
                                     isExpanded: true,
                                     icon: Icon(Icons.keyboard_arrow_down),
-                                    padding: EdgeInsets.symmetric(horizontal: 12),
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 12),
                                     borderRadius: BorderRadius.circular(8),
-                                    items: TaskConstants.categories.sublist(1).toSet().map((value) {
+                                    items: TaskConstants.categories
+                                        .sublist(1)
+                                        .toSet()
+                                        .map((value) {
                                       return DropdownMenuItem<String>(
                                         value: value,
                                         child: Text(
@@ -198,7 +223,8 @@ class TaskActions {
                                         ),
                                       );
                                     }).toList(),
-                                    onChanged: (value) => setState(() => category = value!),
+                                    onChanged: (value) =>
+                                        setState(() => category = value!),
                                   ),
                                 ),
                               ),
@@ -207,7 +233,11 @@ class TaskActions {
                                 "Эмоциональная нагрузка",
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.7),
                                 ),
                               ),
                               SizedBox(height: 4),
@@ -216,35 +246,51 @@ class TaskActions {
                                   SliderTheme(
                                     data: SliderThemeData(
                                       trackHeight: 4,
-                                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6),
+                                      thumbShape: RoundSliderThumbShape(
+                                          enabledThumbRadius: 6),
                                     ),
                                     child: Slider(
                                       value: emotionalLoad.toDouble(),
                                       min: 1,
                                       max: 5,
                                       divisions: 4,
-                                      activeColor: Theme.of(context).colorScheme.primary,
-                                      inactiveColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                                      onChanged: (value) => setState(() => emotionalLoad = value.toInt()),
+                                      activeColor:
+                                          Theme.of(context).colorScheme.primary,
+                                      inactiveColor: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withOpacity(0.2),
+                                      onChanged: (value) => setState(
+                                          () => emotionalLoad = value.toInt()),
                                     ),
                                   ),
                                   Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 4),
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 4),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           "1",
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.color
+                                                ?.withOpacity(0.5),
                                           ),
                                         ),
                                         Text(
                                           "5",
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.color
+                                                ?.withOpacity(0.5),
                                           ),
                                         ),
                                       ],
@@ -257,35 +303,51 @@ class TaskActions {
                                 "Приоритет",
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.7),
                                 ),
                               ),
                               SizedBox(height: 4),
                               Wrap(
                                 spacing: 8.0,
-                                children: ["low", "medium", "high"].map((value) {
+                                children:
+                                    ["low", "medium", "high"].map((value) {
                                   final isSelected = priority == value;
                                   return GestureDetector(
-                                    onTap: () => setState(() => priority = value),
+                                    onTap: () =>
+                                        setState(() => priority = value),
                                     child: Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: isSelected 
-                                            ? Theme.of(context).colorScheme.primary
+                                        color: isSelected
+                                            ? Theme.of(context)
+                                                .colorScheme
+                                                .primary
                                             : Colors.transparent,
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
-                                          color: isSelected 
-                                              ? Theme.of(context).colorScheme.primary
-                                              : Theme.of(context).dividerColor.withOpacity(0.3),
+                                          color: isSelected
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                              : Theme.of(context)
+                                                  .dividerColor
+                                                  .withOpacity(0.3),
                                         ),
                                       ),
                                       child: Text(
                                         _getPriorityText(value),
                                         style: TextStyle(
-                                          color: isSelected 
+                                          color: isSelected
                                               ? Colors.white
-                                              : Theme.of(context).textTheme.bodyMedium?.color,
+                                              : Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.color,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -299,7 +361,11 @@ class TaskActions {
                                 "Дедлайн",
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.7),
                                 ),
                               ),
                               SizedBox(height: 8),
@@ -307,7 +373,8 @@ class TaskActions {
                                 onTap: () => showDateTimePicker(
                                   context,
                                   deadline,
-                                  (newDate) => setState(() => deadline = newDate),
+                                  (newDate) =>
+                                      setState(() => deadline = newDate),
                                 ),
                                 child: Container(
                                   height: 48,
@@ -315,7 +382,9 @@ class TaskActions {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                                      color: Theme.of(context)
+                                          .dividerColor
+                                          .withOpacity(0.3),
                                     ),
                                   ),
                                   child: Row(
@@ -323,7 +392,9 @@ class TaskActions {
                                       Icon(
                                         Icons.calendar_today,
                                         size: 20,
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                       ),
                                       SizedBox(width: 12),
                                       Text(
@@ -339,7 +410,11 @@ class TaskActions {
                                 "Напоминание за",
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.7),
                                 ),
                               ),
                               SizedBox(height: 8),
@@ -348,7 +423,9 @@ class TaskActions {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: Theme.of(context).dividerColor.withOpacity(0.3),
+                                    color: Theme.of(context)
+                                        .dividerColor
+                                        .withOpacity(0.3),
                                   ),
                                 ),
                                 child: DropdownButtonHideUnderline(
@@ -356,16 +433,24 @@ class TaskActions {
                                     value: reminderOffset,
                                     isExpanded: true,
                                     icon: Icon(Icons.keyboard_arrow_down),
-                                    padding: EdgeInsets.symmetric(horizontal: 12),
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 12),
                                     borderRadius: BorderRadius.circular(8),
                                     items: const [
-                                      DropdownMenuItem(value: 0, child: Text("Не уведомлять")),
-                                      DropdownMenuItem(value: 15, child: Text("15 минут")),
-                                      DropdownMenuItem(value: 60, child: Text("1 час")),
-                                      DropdownMenuItem(value: 180, child: Text("3 часа")),
-                                      DropdownMenuItem(value: 1440, child: Text("1 день")),
+                                      DropdownMenuItem(
+                                          value: 0,
+                                          child: Text("Не уведомлять")),
+                                      DropdownMenuItem(
+                                          value: 15, child: Text("15 минут")),
+                                      DropdownMenuItem(
+                                          value: 60, child: Text("1 час")),
+                                      DropdownMenuItem(
+                                          value: 180, child: Text("3 часа")),
+                                      DropdownMenuItem(
+                                          value: 1440, child: Text("1 день")),
                                     ],
-                                    onChanged: (value) => setState(() => reminderOffset = value ?? 0),
+                                    onChanged: (value) => setState(
+                                        () => reminderOffset = value ?? 0),
                                   ),
                                 ),
                               ),
@@ -378,16 +463,22 @@ class TaskActions {
                                     child: Text(
                                       "Отмена",
                                       style: TextStyle(
-                                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.color
+                                            ?.withOpacity(0.7),
                                       ),
                                     ),
                                   ),
                                   SizedBox(width: 12),
                                   ElevatedButton(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Theme.of(context).colorScheme.primary,
+                                      backgroundColor:
+                                          Theme.of(context).colorScheme.primary,
                                       foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 24, vertical: 12),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
@@ -453,23 +544,21 @@ class TaskActions {
     } catch (e) {
       if (context.mounted) {
         NotificationService.showErrorSnackbar(
-          context, "Ошибка обновления уведомления: ${e.toString()}");
+            context, "Ошибка обновления уведомления: ${e.toString()}");
       }
       return;
     }
 
     try {
       await TaskRepository.updateTask(
-        taskId: taskId,
-        title: title,
-        comment: comment,
-        category: category,
-        priority: priority,
-        emotionalLoad: emotionalLoad,
-        deadline: deadline,
-        reminderOffset: reminderOffset
-      );
-
+          taskId: taskId,
+          title: title,
+          comment: comment,
+          category: category,
+          priority: priority,
+          emotionalLoad: emotionalLoad,
+          deadline: deadline,
+          reminderOffset: reminderOffset);
     } catch (e) {
       NotificationService.showErrorSnackbar(
           context, "Ошибка обновления: ${e.toString()}");
@@ -515,11 +604,12 @@ class TaskActions {
         await NotificationService.scheduleReminder(
           id: docRef.id.hashCode,
           title: title,
-          reminderTime: deadline.subtract(
-              Duration(minutes: reminderOffsetMinutes)),
+          reminderTime:
+              deadline.subtract(Duration(minutes: reminderOffsetMinutes)),
         );
       }
-      print('Reminder at: ${deadline.subtract(Duration(minutes: reminderOffsetMinutes))}');
+      print(
+          'Reminder at: ${deadline.subtract(Duration(minutes: reminderOffsetMinutes))}');
       print('Now: ${DateTime.now()}');
 
       if (context.mounted) {
@@ -527,7 +617,6 @@ class TaskActions {
           SnackBar(content: Text('Задача успешно создана')),
         );
       }
-
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
