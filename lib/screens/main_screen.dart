@@ -36,19 +36,43 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.task), label: "Задачи"),
-          BottomNavigationBarItem(icon: Icon(Icons.mood), label: "Настроение"),
-          BottomNavigationBarItem(icon: Icon(Icons.star), label: "Рекомендации"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Отчеты"),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Настройки"),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
+      bottomNavigationBar: Theme(
+        data: Theme.of(context).copyWith(
+          bottomNavigationBarTheme: BottomNavigationBarThemeData(
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
+          ),
+        ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          iconSize: 28,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.task),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.mood),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.star),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: '',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          selectedItemColor: Theme.of(context).colorScheme.primary,
+          unselectedItemColor: Colors.grey,
+        ),
       ),
     );
   }
