@@ -8,6 +8,7 @@ import 'dart:convert';
 import '../../../core/services/nlp_service.dart';
 import '../widgets/mood_selector.dart';
 import '../widgets/gradient_mood_icon.dart';
+import '../widgets/mood_history.dart';
 
 class MoodScreen extends StatefulWidget {
   @override
@@ -456,6 +457,16 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                     ),
                   ),
                 ),
+                SizedBox(height: 32),
+                Text(
+                  "История настроений",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 16),
+                MoodHistory(),
               ],
             ),
           ),
