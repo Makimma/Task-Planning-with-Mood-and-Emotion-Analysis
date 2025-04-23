@@ -24,6 +24,81 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
   bool _isInitialized = false;
   StreamSubscription? _tasksSubscription;
 
+  // Весовые коэффициенты для разных настроений
+  final Map<String, Map<String, double>> moodWeights = {
+    "Грусть": {
+      "emotionalLoadFactor": 0.15,
+      "priorityFactor": 0.35,
+      "deadlineFactor": 0.25
+    },
+
+    "Радость": {
+      "emotionalLoadFactor": 0.15,
+      "priorityFactor": 0.3,
+      "deadlineFactor": 0.3
+    },
+
+    "Спокойствие": {
+      "emotionalLoadFactor": 0.15,
+      "priorityFactor": 0.3,
+      "deadlineFactor": 0.3
+    },
+
+    "Усталость": {
+      "emotionalLoadFactor": 0.25,
+      "priorityFactor": 0.3,
+      "deadlineFactor": 0.2
+    }
+  };
+
+  // Веса категорий для разных настроений
+  final Map<String, Map<String, double>> categoryWeights = {
+    "Грусть": {
+      "Работа": 0.9,
+      "Учёба": 0.8,
+      "Финансы": 0.9,
+      "Здоровье и спорт": 0.4,
+      "Развитие и хобби": 0.5,
+      "Личное": 0.3,
+      "Домашние дела": 0.7,
+      "Путешествия и досуг": 0.2,
+      "Другое": 0.5
+    },
+    "Радость": {
+      "Работа": 0.7,
+      "Учёба": 0.6,
+      "Финансы": 0.5,
+      "Здоровье и спорт": 0.9,
+      "Развитие и хобби": 0.9,
+      "Личное": 0.9,
+      "Домашние дела": 0.6,
+      "Путешествия и досуг": 1.0,
+      "Другое": 0.7
+    },
+    "Спокойствие": {
+      "Работа": 1.0,
+      "Учёба": 1.0,
+      "Финансы": 0.9,
+      "Здоровье и спорт": 0.8,
+      "Развитие и хобби": 0.8,
+      "Личное": 0.8,
+      "Домашние дела": 0.7,
+      "Путешествия и досуг": 0.7,
+      "Другое": 0.7
+    },
+    "Усталость": {
+      "Работа": 0.3,
+      "Учёба": 0.2,
+      "Финансы": 0.2,
+      "Здоровье и спорт": 0.4,
+      "Развитие и хобби": 0.3,
+      "Личное": 0.4,
+      "Домашние дела": 0.8,
+      "Путешествия и досуг": 0.5,
+      "Другое": 0.5
+    }
+  };
+
   @override
   bool get wantKeepAlive => true;
 
@@ -46,6 +121,83 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
     if (state == AppLifecycleState.resumed) {
       _initializeScreen();
     }
+  }
+
+  double _calculateEmotionalCompatibility(Map<String, dynamic> task, String mood) {
+    final int load = task["emotionalLoad"] as int;
+    
+    switch(mood) {
+      case "Грусть":
+        return 1 - (load / 5);
+      
+      case "Радость":
+        return load / 5;
+      
+      case "Спокойствие":
+        return 1 - (pow(load - 3, 2) / 4).toDouble();
+      
+      case "Усталость":
+        return load <= 2 ? 1.0 : 0.0;
+      
+      default:
+        return 0.5;
+    }
+  }
+
+  double _calculatePriorityScore(Map<String, dynamic> task, String mood) {
+    final Map<String, double> priorityValues = {
+      "low": 0.3,
+      "medium": 0.6,
+      "high": 1.0
+    };
+    
+    return priorityValues[task["priority"]] ?? 0.3;
+  }
+
+  double _calculateDeadlineScore(Map<String, dynamic> task) {
+    final DateTime now = DateTime.now();
+    final DateTime deadline = (task["deadline"] as Timestamp).toDate();
+    final double hoursLeft = deadline.difference(now).inHours.toDouble();
+    
+    if (hoursLeft <= 24) return 1.0;
+    if (hoursLeft <= 48) return 0.8;
+    if (hoursLeft <= 72) return 0.6;
+    if (hoursLeft <= 168) return 0.4;
+    return 0.2;
+  }
+
+  double _calculateCategoryScore(Map<String, dynamic> task, String mood) {
+    final String category = task["category"] as String;
+    return categoryWeights[mood]?[category] ?? 0.5;
+  }
+
+  double _calculatePriority(Map<String, dynamic> task) {
+    if (currentMood == null) return 0.5;
+
+    String mood = currentMood!;
+    try {
+      final Map<String, dynamic> moodMap = 
+          (currentMood is String && currentMood!.startsWith('{')) 
+              ? json.decode(currentMood!) 
+              : {'type': currentMood};
+      mood = moodMap['type'] as String;
+    } catch (e) {
+      mood = currentMood!;
+    }
+
+    final weights = moodWeights[mood] ?? moodWeights["Спокойствие"]!;
+    
+    final double emotionalScore = _calculateEmotionalCompatibility(task, mood);
+    final double priorityScore = _calculatePriorityScore(task, mood);
+    final double deadlineScore = _calculateDeadlineScore(task);
+    final double categoryScore = _calculateCategoryScore(task, mood);
+    
+    return (
+      emotionalScore * weights["emotionalLoadFactor"]! +
+      priorityScore * weights["priorityFactor"]! +
+      deadlineScore * weights["deadlineFactor"]! +
+      categoryScore * 0.25
+    );
   }
 
   Future<void> _initializeScreen() async {
@@ -127,38 +279,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
     return null;
   }
 
-  Future<void> _saveTasksToCache(List<Map<String, dynamic>> tasks) async {
-    final prefs = await SharedPreferences.getInstance();
-    final tasksJson = json.encode(tasks.map((task) {
-      return {
-        ...task,
-        'deadline': (task['deadline'] as Timestamp).toDate().toIso8601String(),
-      };
-    }).toList());
-    await prefs.setString('cached_tasks', tasksJson);
-  }
-
-  Future<void> _loadCachedTasks() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final tasksString = prefs.getString('cached_tasks');
-      if (tasksString != null) {
-        final List<dynamic> decodedTasks = json.decode(tasksString);
-        if (!mounted) return;
-        setState(() {
-          cachedTasks = decodedTasks.map((task) {
-            return {
-              ...task,
-              'deadline': Timestamp.fromDate(DateTime.parse(task['deadline'])),
-            };
-          }).cast<Map<String, dynamic>>().toList();
-        });
-      }
-    } catch (e) {
-      print('Ошибка загрузки кэшированных задач: $e');
-    }
-  }
-
   Future<void> _fetchUserMood() async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -192,48 +312,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
         });
       }
     }
-  }
-
-  double _calculatePriority(Map<String, dynamic> task) {
-    DateTime now = DateTime.now();
-    DateTime deadline = (task["deadline"] as Timestamp).toDate();
-
-    double deadlineFactor = 1 / ((deadline.difference(now).inHours + 1).toDouble());
-    double emotionalLoadFactor = _getEmotionalLoadFactor(task["emotionalLoad"]);
-
-    Map<String, double> priorityMap = {"high": 1.0, "medium": 0.7, "low": 0.3};
-    double priorityFactor = priorityMap[task["priority"]] ?? 0.3;
-
-    return (deadlineFactor * 0.5) + (emotionalLoadFactor * 0.3) + (priorityFactor * 0.2);
-  }
-
-  double _getEmotionalLoadFactor(int load) {
-    String? moodType = currentMood;
-    if (currentMood != null) {
-      try {
-        final Map<String, dynamic> moodMap = 
-            (currentMood is String && currentMood!.startsWith('{')) 
-                ? json.decode(currentMood!) 
-                : {'type': currentMood};
-        moodType = moodMap['type'] as String;
-      } catch (e) {
-        moodType = currentMood;
-      }
-    }
-
-    double factor = 0.5;
-
-    if (moodType == "Радость") {
-      factor = load / 5;
-    } else if (moodType == "Спокойствие") {
-      factor = 1 - (pow(load - 3, 2) / 4).toDouble();
-    } else if (moodType == "Грусть") {
-      factor = (5 - load) / 4;
-    } else if (moodType == "Усталость") {
-      factor = ((pow(5 - load, 2) + 4) / 20).toDouble();
-    }
-
-    return factor;
   }
 
   @override
