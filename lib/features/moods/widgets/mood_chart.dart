@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
-import '../widgets/gradient_mood_icon.dart';
+import 'gradient_mood_icon.dart';
 
 class MoodChart extends StatelessWidget {
   final List<Map<String, dynamic>> moodData;

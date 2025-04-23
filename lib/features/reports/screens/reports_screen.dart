@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_appp/screens/reports/widgets/overview_report.dart';
-import 'package:flutter_appp/screens/reports/widgets/mood_report.dart';
-import 'package:flutter_appp/screens/reports/data/reports_data_provider.dart';
-import '../../widgets/period_selector.dart';
+import 'package:flutter_appp/features/reports/widgets/overview_report.dart';
+import 'package:flutter_appp/features/reports/widgets/mood_report.dart';
+import 'package:flutter_appp/features/reports/data/reports_data_provider.dart';
+import '../../../core/widgets/period_selector.dart';
 
 class ReportsScreen extends StatefulWidget {
   @override

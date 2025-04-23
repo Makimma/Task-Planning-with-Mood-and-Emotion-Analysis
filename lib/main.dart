@@ -5,8 +5,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/auth_screen.dart';
-import 'screens/main_screen.dart';
+import 'features/auth/screens/auth_screen.dart';
+import 'core/navigation/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

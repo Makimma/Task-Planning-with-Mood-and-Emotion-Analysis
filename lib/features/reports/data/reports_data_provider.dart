@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_appp/services/task_repository.dart';
+import 'package:flutter_appp/features/tasks/services/task_repository.dart';
 
 class ReportsDataProvider {
   String selectedPeriod = "Неделя";

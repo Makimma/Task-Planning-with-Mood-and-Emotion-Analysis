@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../constants/task_constants.dart';
+import '../../../constants/task_constants.dart';
 
 class TaskFilter {
   static List<Map<String, dynamic>> applyFilters({

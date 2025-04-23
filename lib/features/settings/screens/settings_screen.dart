@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../main.dart';
-import '../services/notification_service.dart';
-import 'auth_screen.dart';
-import '../services/auth_service.dart';
+import '../../../main.dart';
+import '../../../core/services/notification_service.dart';
+import '../../auth/screens/auth_screen.dart';
+import '../../auth/services/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override

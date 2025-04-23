@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_appp/services/task_actions.dart';
-import 'package:flutter_appp/services/task_repository.dart';
-import 'package:flutter_appp/widgets/task_card.dart';
+import 'package:flutter_appp/features/tasks/services/task_actions.dart';
+import 'package:flutter_appp/features/tasks/services/task_repository.dart';
+import 'package:flutter_appp/features/tasks/widgets/task_card.dart';
 import '../services/task_filter.dart';
 import '../widgets/add_task_dialog.dart';
-import '../widgets/app_dropdown.dart';
+import '../../../core/widgets/app_dropdown.dart';
 import '../widgets/filter_task_dialog.dart';
-import '../widgets/sort_selector.dart';
-import '../widgets/search_field.dart';
+import '../../../core/widgets/sort_selector.dart';
+import '../../../core/widgets/search_field.dart';
 
 class TasksScreen extends StatefulWidget {
   @override

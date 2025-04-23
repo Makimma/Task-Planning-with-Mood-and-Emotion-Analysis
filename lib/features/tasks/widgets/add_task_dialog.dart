@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_appp/constants/task_constants.dart';
-import 'package:flutter_appp/services/task_actions.dart';
-import 'package:flutter_appp/services/task_analyzer.dart';
+import 'package:flutter_appp/features/tasks/services/task_actions.dart';
+import 'package:flutter_appp/features/tasks/services/task_analyzer.dart';
 import 'package:flutter/services.dart';
 
 class AddTaskDialog extends StatefulWidget {

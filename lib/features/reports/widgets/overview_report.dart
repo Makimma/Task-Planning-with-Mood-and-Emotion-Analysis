@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../data/reports_data_provider.dart';
-import '../../../widgets/report_card.dart';
-import '../../../widgets/gradient_mood_icon.dart';
-import '../widgets/mood_stat_card.dart';
-import '../widgets/task_stat_row.dart';
+import '../../../core/widgets/report_card.dart';
+import '../../moods/widgets/gradient_mood_icon.dart';
+import 'mood_stat_card.dart';
+import 'task_stat_row.dart';
 
 class OverviewReport extends StatelessWidget {
   final ReportsDataProvider dataProvider;

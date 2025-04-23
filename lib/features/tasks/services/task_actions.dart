@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../constants/task_constants.dart';
+import '../../../constants/task_constants.dart';
 import 'task_repository.dart';
-import 'notification_service.dart';
+import '../../../core/services/notification_service.dart';
 
 class TaskActions {
   static final User? user = TaskRepository.getCurrentUser();

@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import '../services/category_service.dart';
-import '../services/nlp_service.dart';
-import '../constants/task_constants.dart';
+import 'category_service.dart';
+import '../../../core/services/nlp_service.dart';
+import '../../../constants/task_constants.dart';
 
 class TaskAnalyzer {
   static Future<void> analyzeCategory({

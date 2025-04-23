@@ -5,12 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
-import 'package:flutter_appp/services/task_actions.dart';
-import 'package:flutter_appp/widgets/task_card.dart';
+import 'package:flutter_appp/features/tasks/services/task_actions.dart';
+import 'package:flutter_appp/features/tasks/widgets/task_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_appp/services/task_repository.dart';
+import 'package:flutter_appp/features/tasks/services/task_repository.dart';
 
-import '../widgets/gradient_mood_icon.dart';
+import '../../moods/widgets/gradient_mood_icon.dart';
 
 class RecommendationsScreen extends StatefulWidget {
   @override

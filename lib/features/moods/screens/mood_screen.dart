@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
-import '../services/nlp_service.dart';
+import '../../../core/services/nlp_service.dart';
 import '../widgets/mood_selector.dart';
 import '../widgets/gradient_mood_icon.dart';
 

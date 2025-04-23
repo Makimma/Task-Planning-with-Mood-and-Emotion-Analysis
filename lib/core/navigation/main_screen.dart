@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_appp/screens/recommendations_screen.dart';
-import 'package:flutter_appp/screens/reports/reports_screen.dart';
-import 'package:flutter_appp/screens/settings_screen.dart';
-import 'package:flutter_appp/screens/tasks_screen.dart';
-import 'mood_screen.dart';
+import 'package:flutter_appp/features/recommendations/screens/recommendations_screen.dart';
+import 'package:flutter_appp/features/reports/screens/reports_screen.dart';
+import 'package:flutter_appp/features/settings/screens/settings_screen.dart';
+import 'package:flutter_appp/features/tasks/screens/tasks_screen.dart';
+import '../../features/moods/screens/mood_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final User user;
