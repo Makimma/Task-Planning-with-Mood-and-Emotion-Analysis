@@ -52,7 +52,7 @@ class TaskFilter {
           return (a['deadline'] as Timestamp)
               .compareTo(b['deadline'] as Timestamp);
         case "Приоритет":
-          final priorityOrder = {"high": 3, "medium": 2, "low": 1};
+          final priorityOrder = {"high": 1, "medium": 2, "low": 3};
           return priorityOrder[a['priority']]!
               .compareTo(priorityOrder[b['priority']]!);
         case "Эмоц. нагрузка":

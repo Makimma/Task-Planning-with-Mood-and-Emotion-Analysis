@@ -97,9 +97,9 @@ class TaskActions {
                         builder: (context, setState) {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      initialValue: title,
+                            children: [
+                              TextFormField(
+                                initialValue: title,
                                 decoration: InputDecoration(
                                   labelText: "Название",
                                   contentPadding: EdgeInsets.symmetric(
@@ -129,20 +129,20 @@ class TaskActions {
                                   ),
                                 ),
                                 style: TextStyle(fontSize: 14),
-                      maxLength: 50,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Название обязательно";
-                        } else if (value.length > 50) {
-                          return "Максимум 50 символов";
-                        }
-                        return null;
-                      },
-                      onChanged: (value) => title = value,
-                    ),
+                                maxLength: 50,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return "Название обязательно";
+                                  } else if (value.length > 50) {
+                                    return "Максимум 50 символов";
+                                  }
+                                  return null;
+                                },
+                                onChanged: (value) => title = value,
+                              ),
                               SizedBox(height: 12),
-                    TextFormField(
-                      initialValue: comment,
+                              TextFormField(
+                                initialValue: comment,
                                 decoration: InputDecoration(
                                   labelText: "Комментарий",
                                   contentPadding: EdgeInsets.symmetric(
@@ -172,10 +172,10 @@ class TaskActions {
                                   ),
                                 ),
                                 style: TextStyle(fontSize: 14),
-                      maxLength: 512,
+                                maxLength: 512,
                                 maxLines: 2,
-                      onChanged: (value) => comment = value,
-                    ),
+                                onChanged: (value) => comment = value,
+                              ),
                               SizedBox(height: 12),
                               Text(
                                 "Категория",
@@ -204,25 +204,25 @@ class TaskActions {
                                   child: DropdownButton<String>(
                                     value: TaskConstants.categories
                                             .contains(category)
-                          ? category
-                          : "Другое",
+                                        ? category
+                                        : "Другое",
                                     isExpanded: true,
                                     icon: Icon(Icons.keyboard_arrow_down),
                                     padding:
                                         EdgeInsets.symmetric(horizontal: 12),
                                     borderRadius: BorderRadius.circular(8),
-                      items: TaskConstants.categories
-                          .sublist(1)
-                          .toSet()
+                                    items: TaskConstants.categories
+                                        .sublist(1)
+                                        .toSet()
                                         .map((value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
+                                      return DropdownMenuItem<String>(
+                                        value: value,
                                         child: Text(
                                           value,
                                           style: TextStyle(fontSize: 14),
                                         ),
-                        );
-                      }).toList(),
+                                      );
+                                    }).toList(),
                                     onChanged: (value) =>
                                         setState(() => category = value!),
                                   ),
@@ -250,10 +250,10 @@ class TaskActions {
                                           enabledThumbRadius: 6),
                                     ),
                                     child: Slider(
-                      value: emotionalLoad.toDouble(),
-                      min: 1,
-                      max: 5,
-                      divisions: 4,
+                                      value: emotionalLoad.toDouble(),
+                                      min: 1,
+                                      max: 5,
+                                      divisions: 4,
                                       activeColor:
                                           Theme.of(context).colorScheme.primary,
                                       inactiveColor: Theme.of(context)
@@ -292,9 +292,9 @@ class TaskActions {
                                                 ?.color
                                                 ?.withOpacity(0.5),
                                           ),
-                    ),
-                  ],
-                ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -458,8 +458,8 @@ class TaskActions {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
                                     child: Text(
                                       "Отмена",
                                       style: TextStyle(
@@ -472,7 +472,7 @@ class TaskActions {
                                     ),
                                   ),
                                   SizedBox(width: 12),
-            ElevatedButton(
+                                  ElevatedButton(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor:
                                           Theme.of(context).colorScheme.primary,
@@ -483,8 +483,8 @@ class TaskActions {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                     ),
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
+                                    onPressed: () {
+                                      if (_formKey.currentState!.validate()) {
                                         updateTask(
                                           task['id'],
                                           title,
@@ -498,10 +498,10 @@ class TaskActions {
                                         );
                                         Navigator.pop(context);
                                       }
-              },
-              child: Text("Сохранить"),
-            ),
-          ],
+                                    },
+                                    child: Text("Сохранить"),
+                                  ),
+                                ],
                               ),
                             ],
                           );
@@ -544,20 +544,20 @@ class TaskActions {
     } catch (e) {
       if (context.mounted) {
         NotificationService.showErrorSnackbar(
-          context, "Ошибка обновления уведомления: ${e.toString()}");
+            context, "Ошибка обновления уведомления: ${e.toString()}");
       }
       return;
     }
 
     try {
       await TaskRepository.updateTask(
-        taskId: taskId,
-        title: title,
-        comment: comment,
-        category: category,
-        priority: priority,
-        emotionalLoad: emotionalLoad,
-        deadline: deadline,
+          taskId: taskId,
+          title: title,
+          comment: comment,
+          category: category,
+          priority: priority,
+          emotionalLoad: emotionalLoad,
+          deadline: deadline,
           reminderOffset: reminderOffset);
     } catch (e) {
       NotificationService.showErrorSnackbar(
