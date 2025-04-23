@@ -27,27 +27,27 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
   // Весовые коэффициенты для разных настроений
   final Map<String, Map<String, double>> moodWeights = {
     "Грусть": {
-      "emotionalLoadFactor": 0.15,
+      "emotionalLoadFactor": 0.25,
       "priorityFactor": 0.35,
-      "deadlineFactor": 0.25
+      "deadlineFactor": 0.15
     },
 
     "Радость": {
-      "emotionalLoadFactor": 0.15,
+      "emotionalLoadFactor": 0.1,
       "priorityFactor": 0.3,
-      "deadlineFactor": 0.3
+      "deadlineFactor": 0.35
     },
 
     "Спокойствие": {
       "emotionalLoadFactor": 0.15,
-      "priorityFactor": 0.3,
-      "deadlineFactor": 0.3
+      "priorityFactor": 0.4,
+      "deadlineFactor": 0.25
     },
 
     "Усталость": {
-      "emotionalLoadFactor": 0.25,
-      "priorityFactor": 0.3,
-      "deadlineFactor": 0.2
+      "emotionalLoadFactor": 0.35,
+      "priorityFactor": 0.2,
+      "deadlineFactor": 0.1
     }
   };
 
@@ -60,14 +60,14 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
       "Здоровье и спорт": 0.4,
       "Развитие и хобби": 0.5,
       "Личное": 0.3,
-      "Домашние дела": 0.7,
+      "Домашние дела": 0.6,
       "Путешествия и досуг": 0.2,
       "Другое": 0.5
     },
     "Радость": {
       "Работа": 0.7,
       "Учёба": 0.6,
-      "Финансы": 0.5,
+      "Финансы": 0.4,
       "Здоровье и спорт": 0.9,
       "Развитие и хобби": 0.9,
       "Личное": 0.9,
@@ -82,15 +82,15 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
       "Здоровье и спорт": 0.8,
       "Развитие и хобби": 0.8,
       "Личное": 0.8,
-      "Домашние дела": 0.7,
+      "Домашние дела": 0.6,
       "Путешествия и досуг": 0.7,
       "Другое": 0.7
     },
     "Усталость": {
-      "Работа": 0.3,
+      "Работа": 0.1,
       "Учёба": 0.2,
       "Финансы": 0.2,
-      "Здоровье и спорт": 0.4,
+      "Здоровье и спорт": 0.6,
       "Развитие и хобби": 0.3,
       "Личное": 0.4,
       "Домашние дела": 0.8,
