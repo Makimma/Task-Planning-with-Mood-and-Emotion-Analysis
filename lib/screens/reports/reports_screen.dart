@@ -12,7 +12,7 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveClientMixin {
   String selectedPeriod = "Неделя";
   final ReportsDataProvider _dataProvider = ReportsDataProvider();
-  bool isLoading = false;
+  bool isLoading = true;
 
   @override
   bool get wantKeepAlive => true;
@@ -24,11 +24,8 @@ class _ReportsScreenState extends State<ReportsScreen> with AutomaticKeepAliveCl
   }
 
   Future<void> _initializeData() async {
-    if (_dataProvider.isInitialized && _dataProvider.hasCachedData(selectedPeriod)) {
-      _dataProvider.restoreFromCache(selectedPeriod);
-      return;
-    }
-    
+    if (!mounted) return;
+
     setState(() {
       isLoading = true;
     });

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_appp/screens/recommendations_screen.dart';
-import 'package:flutter_appp/screens/reports_screen.dart';
+import 'package:flutter_appp/screens/reports/reports_screen.dart';
 import 'package:flutter_appp/screens/settings_screen.dart';
 import 'package:flutter_appp/screens/tasks_screen.dart';
 import 'mood_screen.dart';
