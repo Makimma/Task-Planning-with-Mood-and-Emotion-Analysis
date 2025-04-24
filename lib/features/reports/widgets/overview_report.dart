@@ -43,14 +43,21 @@ class OverviewReport extends StatelessWidget {
   }
 
   Widget _buildMoodOverview(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? Colors.transparent : Colors.grey[300]!,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isDarkMode 
+                ? Colors.black.withOpacity(0.05)
+                : Colors.black.withOpacity(0.08),
             blurRadius: 10,
             offset: Offset(0, 4),
           ),
@@ -139,14 +146,21 @@ class OverviewReport extends StatelessWidget {
   }
 
   Widget _buildTasksOverview(BuildContext context, int displayedTasks) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? Colors.transparent : Colors.grey[300]!,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isDarkMode 
+                ? Colors.black.withOpacity(0.05)
+                : Colors.black.withOpacity(0.08),
             blurRadius: 10,
             offset: Offset(0, 4),
           ),

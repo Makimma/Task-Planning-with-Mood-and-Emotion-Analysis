@@ -33,6 +33,12 @@ class FilterDialog extends StatelessWidget {
           backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Theme.of(context).brightness == Brightness.light 
+                  ? Colors.grey[300]!
+                  : Colors.transparent,
+              width: 1,
+            ),
           ),
           child: Container(
             width: MediaQuery.of(context).size.width * 0.9,
@@ -74,7 +80,9 @@ class FilterDialog extends StatelessWidget {
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                      color: Theme.of(context).brightness == Brightness.light 
+                          ? Colors.grey[400]!
+                          : Theme.of(context).dividerColor.withOpacity(0.3),
                     ),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -130,7 +138,9 @@ class FilterDialog extends StatelessWidget {
                           border: Border.all(
                             color: isSelected 
                                 ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).dividerColor.withOpacity(0.3),
+                                : Theme.of(context).brightness == Brightness.light 
+                                    ? Colors.grey[400]!
+                                    : Theme.of(context).dividerColor.withOpacity(0.3),
                           ),
                         ),
                         child: Text(

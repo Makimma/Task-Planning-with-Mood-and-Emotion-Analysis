@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/reports_data_provider.dart';
 import '../../moods/widgets/mood_chart.dart';
-import '../../tasks/widgets/task_chart.dart';
+import 'task_chart.dart';
 import 'productivity_chart.dart';
 
 class MoodReport extends StatelessWidget {

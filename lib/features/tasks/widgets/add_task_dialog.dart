@@ -61,6 +61,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Theme.of(context).brightness == Brightness.light 
+              ? Colors.grey[300]!
+              : Colors.transparent,
+          width: 1,
+        ),
       ),
       child: GestureDetector(
         onTap: () {
@@ -221,6 +227,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     Function(String)? onSubmitted,
     required FocusNode focusNode,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return TextFormField(
       focusNode: focusNode,
       decoration: InputDecoration(
@@ -229,19 +236,26 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.3),
+            color: isDarkMode 
+                ? Theme.of(context).dividerColor.withOpacity(0.3)
+                : Colors.grey[350]!,
+            width: 1.2,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.3),
+            color: isDarkMode 
+                ? Theme.of(context).dividerColor.withOpacity(0.3)
+                : Colors.grey[350]!,
+            width: 1.2,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
             color: Theme.of(context).colorScheme.primary,
+            width: 1.5,
           ),
         ),
       ),
@@ -255,13 +269,17 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   Widget _buildCategorySelector(StateSetter setState) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 48,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.3),
+          color: isDarkMode 
+              ? Theme.of(context).dividerColor.withOpacity(0.3)
+              : Colors.grey[350]!,
+          width: 1.2,
         ),
       ),
       child: DropdownButtonHideUnderline(
@@ -290,6 +308,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   Widget _buildPrioritySelector(StateSetter setState) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Wrap(
       spacing: 8.0,
       children: ["low", "medium", "high"].map((value) {
@@ -306,7 +325,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               border: Border.all(
                 color: isSelected 
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).dividerColor.withOpacity(0.3),
+                    : isDarkMode 
+                        ? Theme.of(context).dividerColor.withOpacity(0.3)
+                        : Colors.grey[350]!,
+                width: 1.2,
               ),
             ),
             child: Text(
@@ -381,6 +403,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   Widget _buildDateTimeSection(StateSetter setState) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -398,7 +421,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: Theme.of(context).dividerColor.withOpacity(0.3),
+                color: isDarkMode 
+                    ? Theme.of(context).dividerColor.withOpacity(0.3)
+                    : Colors.grey[350]!,
+                width: 1.2,
               ),
             ),
             child: Row(
@@ -422,6 +448,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   Widget _buildReminderSection(StateSetter setState) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final options = {
       0: "Не уведомлять",
       15: "15 минут",
@@ -440,7 +467,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.3),
+              color: isDarkMode 
+                  ? Theme.of(context).dividerColor.withOpacity(0.3)
+                  : Colors.grey[350]!,
+              width: 1.2,
             ),
           ),
           child: DropdownButtonHideUnderline(

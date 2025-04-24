@@ -58,6 +58,12 @@ class TaskActions {
           backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Theme.of(context).brightness == Brightness.light 
+                  ? Colors.grey[300]!
+                  : Colors.transparent,
+              width: 1,
+            ),
           ),
           child: GestureDetector(
             onTap: () {
@@ -107,24 +113,26 @@ class TaskActions {
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context)
-                                          .dividerColor
-                                          .withOpacity(0.3),
+                                      color: Theme.of(context).brightness == Brightness.light 
+                                          ? Colors.grey[350]!
+                                          : Theme.of(context).dividerColor.withOpacity(0.3),
+                                      width: 1.2,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context)
-                                          .dividerColor
-                                          .withOpacity(0.3),
+                                      color: Theme.of(context).brightness == Brightness.light 
+                                          ? Colors.grey[350]!
+                                          : Theme.of(context).dividerColor.withOpacity(0.3),
+                                      width: 1.2,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(context).colorScheme.primary,
+                                      width: 1.5,
                                     ),
                                   ),
                                 ),
@@ -150,24 +158,26 @@ class TaskActions {
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context)
-                                          .dividerColor
-                                          .withOpacity(0.3),
+                                      color: Theme.of(context).brightness == Brightness.light 
+                                          ? Colors.grey[350]!
+                                          : Theme.of(context).dividerColor.withOpacity(0.3),
+                                      width: 1.2,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color: Theme.of(context)
-                                          .dividerColor
-                                          .withOpacity(0.3),
+                                      color: Theme.of(context).brightness == Brightness.light 
+                                          ? Colors.grey[350]!
+                                          : Theme.of(context).dividerColor.withOpacity(0.3),
+                                      width: 1.2,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide(
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(context).colorScheme.primary,
+                                      width: 1.5,
                                     ),
                                   ),
                                 ),
@@ -195,9 +205,10 @@ class TaskActions {
                                   color: Theme.of(context).colorScheme.surface,
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: Theme.of(context)
-                                        .dividerColor
-                                        .withOpacity(0.3),
+                                    color: Theme.of(context).brightness == Brightness.light 
+                                        ? Colors.grey[350]!
+                                        : Theme.of(context).dividerColor.withOpacity(0.3),
+                                    width: 1.2,
                                   ),
                                 ),
                                 child: DropdownButtonHideUnderline(
@@ -324,19 +335,16 @@ class TaskActions {
                                           horizontal: 16, vertical: 8),
                                       decoration: BoxDecoration(
                                         color: isSelected
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .primary
+                                            ? Theme.of(context).colorScheme.primary
                                             : Colors.transparent,
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
                                           color: isSelected
-                                              ? Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                              : Theme.of(context)
-                                                  .dividerColor
-                                                  .withOpacity(0.3),
+                                              ? Theme.of(context).colorScheme.primary
+                                              : Theme.of(context).brightness == Brightness.light 
+                                                  ? Colors.grey[350]!
+                                                  : Theme.of(context).dividerColor.withOpacity(0.3),
+                                          width: 1.2,
                                         ),
                                       ),
                                       child: Text(
@@ -382,9 +390,10 @@ class TaskActions {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Theme.of(context)
-                                          .dividerColor
-                                          .withOpacity(0.3),
+                                      color: Theme.of(context).brightness == Brightness.light 
+                                          ? Colors.grey[350]!
+                                          : Theme.of(context).dividerColor.withOpacity(0.3),
+                                      width: 1.2,
                                     ),
                                   ),
                                   child: Row(
@@ -423,9 +432,10 @@ class TaskActions {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: Theme.of(context)
-                                        .dividerColor
-                                        .withOpacity(0.3),
+                                    color: Theme.of(context).brightness == Brightness.light 
+                                        ? Colors.grey[350]!
+                                        : Theme.of(context).dividerColor.withOpacity(0.3),
+                                    width: 1.2,
                                   ),
                                 ),
                                 child: DropdownButtonHideUnderline(

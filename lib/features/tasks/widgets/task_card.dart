@@ -9,26 +9,29 @@ class TaskCard extends StatelessWidget {
 
   const TaskCard({
     required this.task,
-      this.onEdit,
-      this.onComplete,
+    this.onEdit,
+    this.onComplete,
     required this.isCompleted,
-      super.key,
+    super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     DateTime deadline = _convertToDateTime(task['deadline']);
     bool isOverdue = !isCompleted && _isOverdue(deadline);
-    Color priorityColor = _getPriorityColor(task['priority']);
-    Color emotionalLoadColor = _getTaskColor(task['emotionalLoad']);
+    Color priorityColor = _getPriorityColor(context, task['priority']);
+    Color emotionalLoadColor = _getTaskColor(context, task['emotionalLoad']);
 
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
+      elevation: Theme.of(context).brightness == Brightness.light ? 3 : 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isOverdue ? Colors.red.withOpacity(0.3) : Colors.transparent,
+          color: isOverdue
+              ? Colors.red.withOpacity(
+                  Theme.of(context).brightness == Brightness.light ? 0.5 : 0.3)
+              : Colors.transparent,
           width: 1,
         ),
       ),
@@ -45,28 +48,31 @@ class TaskCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-      child: Row(
-        children: [
+                    child: Row(
+                      children: [
                         if (!isCompleted) ...[
-          Container(
+                          Container(
                             width: 4,
                             height: 24,
-            decoration: BoxDecoration(
+                            decoration: BoxDecoration(
                               color: priorityColor,
                               borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+                            ),
+                          ),
                           SizedBox(width: 12),
                         ],
-          Expanded(
+                        Expanded(
                           child: Text(
-                task['title'],
-                style: TextStyle(
+                            task['title'],
+                            style: TextStyle(
                               fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                              color: Theme.of(context).textTheme.titleMedium?.color,
-                ),
-              ),
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.color,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -74,7 +80,9 @@ class TaskCard extends StatelessWidget {
                   if (!isCompleted)
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Theme.of(context).brightness == Brightness.light
+                            ? Colors.green.withOpacity(0.15)
+                            : Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: IconButton(
@@ -107,7 +115,7 @@ class TaskCard extends StatelessWidget {
               ),
               SizedBox(height: 8),
               Row(
-                      children: [
+                children: [
                   _buildInfoChip(
                     context,
                     icon: Icons.access_time,
@@ -120,7 +128,7 @@ class TaskCard extends StatelessWidget {
                     icon: Icons.psychology,
                     label: 'Нагрузка: ${task['emotionalLoad']}',
                     color: emotionalLoadColor,
-                        ),
+                  ),
                 ],
               ),
               if (isOverdue) ...[
@@ -148,15 +156,17 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoChip(BuildContext context, {
+  Widget _buildInfoChip(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required Color color,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withOpacity(isDarkMode ? 0.1 : 0.15),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -169,6 +179,7 @@ class TaskCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               color: color,
+              fontWeight: isDarkMode ? FontWeight.normal : FontWeight.w500,
             ),
           ),
         ],
@@ -189,16 +200,17 @@ class TaskCard extends StatelessWidget {
     }
   }
 
-  Color _getPriorityColor(String priority) {
+  Color _getPriorityColor(BuildContext context, String priority) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     switch (priority) {
       case 'high':
-        return Colors.red;
+        return isDarkMode ? Colors.red[400]! : Colors.red[600]!;
       case 'medium':
-        return Colors.orange;
+        return isDarkMode ? Colors.orange[400]! : Colors.orange[600]!;
       case 'low':
-        return Colors.green;
+        return isDarkMode ? Colors.green[400]! : Colors.green[600]!;
       default:
-        return Colors.grey;
+        return isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
     }
   }
 
@@ -224,13 +236,14 @@ class TaskCard extends StatelessWidget {
     return "${local.day}.${local.month}.${local.year} $hours:$minutes";
   }
 
-  Color _getTaskColor(int emotionalLoad) {
+  Color _getTaskColor(BuildContext context, int emotionalLoad) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     if (emotionalLoad >= 4) {
-      return Colors.red.shade300;
+      return isDarkMode ? Colors.red[300]! : Colors.red[400]!;
     } else if (emotionalLoad == 3) {
-      return Colors.yellow.shade300;
+      return isDarkMode ? Colors.yellow[300]! : Colors.orange[400]!;
     } else {
-      return Colors.green.shade300;
+      return isDarkMode ? Colors.green[300]! : Colors.green[400]!;
     }
   }
 }
