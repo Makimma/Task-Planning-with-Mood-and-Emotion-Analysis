@@ -416,11 +416,45 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
             };
           }).toList();
 
+          // Apply filters to completed tasks
+          List<Map<String, dynamic>> filteredCompletedTasks = TaskFilter.applyFilters(
+            tasks: tasks,
+            selectedCategory: selectedCategory,
+            selectedPriorities: selectedPriorities,
+            minLoad: minLoad,
+            maxLoad: maxLoad,
+            searchQuery: searchQuery,
+          );
+
+          TaskFilter.sortTasks(
+            tasks: filteredCompletedTasks,
+            selectedSortOption: selectedSortOption,
+          );
+
+          if (filteredCompletedTasks.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_outline, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    "Нет выполненных задач",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return ListView.builder(
             padding: EdgeInsets.only(top: 8, bottom: 80),
-            itemCount: tasks.length,
+            itemCount: filteredCompletedTasks.length,
             itemBuilder: (context, index) {
-              final task = tasks[index];
+              final task = filteredCompletedTasks[index];
               return TaskCard(
                 task: task,
                 isCompleted: true,
