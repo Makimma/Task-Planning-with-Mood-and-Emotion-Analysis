@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../core/services/local_data_service.dart';
 import '../../../core/services/notification_service.dart';
 
 class AuthService {
@@ -63,5 +64,6 @@ class AuthService {
     await _auth.signOut();
     await GoogleSignIn().signOut();
     await NotificationService.toggleNotifications(false);
+    await LocalDataService.clearAll();
   }
 }

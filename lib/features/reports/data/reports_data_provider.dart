@@ -27,7 +27,7 @@ class ReportsDataProvider {
   double taskCompletionRate = 0.0;
 
   bool _isInitialized = false;
-  Map<String, Map<String, dynamic>> _periodCache = {};
+  static final Map<String, Map<String, dynamic>> _periodCache = {};
 
   StreamSubscription? _moodProductivitySubscription;
   StreamSubscription? _tasksSubscription;
@@ -36,6 +36,10 @@ class ReportsDataProvider {
   bool get isInitialized => _isInitialized;
 
   bool hasCachedData(String period) => _periodCache.containsKey(period);
+
+  static void clearCache() {
+    _periodCache.clear();
+  }
 
   Future<void> initialize(String period) async {
     selectedPeriod = period;
