@@ -10,6 +10,8 @@ import '../widgets/mood_selector.dart';
 import '../widgets/gradient_mood_icon.dart';
 import '../widgets/mood_history.dart';
 
+final GlobalKey<MoodHistoryState> moodHistoryKey = GlobalKey<MoodHistoryState>();
+
 class MoodScreen extends StatefulWidget {
   @override
   _MoodScreenState createState() => _MoodScreenState();
@@ -67,9 +69,14 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
     try {
       var connectivityResult = await Connectivity().checkConnectivity();
       if (!mounted) return;
+      final wasOnline = isOnline;
       setState(() {
         isOnline = connectivityResult != ConnectivityResult.none;
       });
+      // Если состояние подключения изменилось, обновляем историю
+      if (wasOnline != isOnline) {
+        moodHistoryKey.currentState?.loadOfflineMoods();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -98,7 +105,15 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
       final prefs = await SharedPreferences.getInstance();
       final moodString = prefs.getString('current_mood');
       if (moodString != null) {
-        return json.decode(moodString);
+        final moodData = json.decode(moodString);
+        final timestamp = DateTime.parse(moodData['timestamp']);
+        final now = DateTime.now();
+        // Check if the mood is from today
+        if (timestamp.year == now.year && 
+            timestamp.month == now.month && 
+            timestamp.day == now.day) {
+          return moodData;
+        }
       }
     } catch (e) {
       print('Ошибка получения локального настроения: $e');
@@ -124,16 +139,24 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
         .snapshots()
         .listen((snapshot) async {
       if (snapshot.docs.isNotEmpty && mounted) {
-        final serverMood = snapshot.docs.first["type"];
-        final serverNote = snapshot.docs.first["note"] ?? "";
+        final serverMood = snapshot.docs.first;
+        final serverData = serverMood.data() as Map<String, dynamic>;
+        final serverTimestamp = serverData['timestamp'] as Timestamp;
         
-        await _saveLocalMood(serverMood, serverNote);
+        // Get local mood to compare timestamps
+        final localMood = await _getLocalMood();
+        final localTimestamp = localMood != null ? DateTime.parse(localMood['timestamp']) : null;
         
-        if (mounted) {
-          setState(() {
-            currentMood = serverMood;
-            _isInitialized = true;
-          });
+        // Only update if server mood is newer
+        if (localTimestamp == null || serverTimestamp.toDate().isAfter(localTimestamp)) {
+          await _saveLocalMood(serverData['type'], serverData['note'] ?? "");
+          
+          if (mounted) {
+            setState(() {
+              currentMood = serverData['type'];
+              _isInitialized = true;
+            });
+          }
         }
       }
     }, onError: (error) {
@@ -181,17 +204,25 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
           .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
           .get();
 
+      final localTimestamp = DateTime.parse(localMood['timestamp']);
+
       if (moodSnapshot.docs.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(user.uid)
-            .collection("moods")
-            .doc(moodSnapshot.docs.first.id)
-            .update({
-          "type": localMood['type'],
-          "note": localMood['note'],
-          "timestamp": Timestamp.fromDate(DateTime.parse(localMood['timestamp'])),
-        });
+        final serverMood = moodSnapshot.docs.first;
+        final serverTimestamp = (serverMood.data() as Map<String, dynamic>)['timestamp'] as Timestamp;
+        
+        // Only update if local mood is newer
+        if (localTimestamp.isAfter(serverTimestamp.toDate())) {
+          await FirebaseFirestore.instance
+              .collection("users")
+              .doc(user.uid)
+              .collection("moods")
+              .doc(serverMood.id)
+              .update({
+            "type": localMood['type'],
+            "note": localMood['note'],
+            "timestamp": Timestamp.fromDate(localTimestamp),
+          });
+        }
       } else {
         await FirebaseFirestore.instance
             .collection("users")
@@ -200,7 +231,7 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
             .add({
           "type": localMood['type'],
           "note": localMood['note'],
-          "timestamp": Timestamp.fromDate(DateTime.parse(localMood['timestamp'])),
+          "timestamp": Timestamp.fromDate(localTimestamp),
         });
       }
 
@@ -271,6 +302,9 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
 
     // Сохраняем локально
     await _saveLocalMood(selectedMood, note);
+
+    // Обновляем историю настроений
+    moodHistoryKey.currentState?.loadOfflineMoods();
 
     // Пробуем синхронизировать с сервером
     if (isOnline) {
@@ -466,7 +500,7 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                   ),
                 ),
                 SizedBox(height: 16),
-                MoodHistory(),
+                MoodHistory(key: moodHistoryKey, isOnline: isOnline),
               ],
             ),
           ),
