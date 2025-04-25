@@ -27,27 +27,27 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
   // Весовые коэффициенты для разных настроений
   final Map<String, Map<String, double>> moodWeights = {
     "Грусть": {
-      "emotionalLoadFactor": 0.25,
-      "priorityFactor": 0.35,
-      "deadlineFactor": 0.15
+      "emotionalLoadFactor": 0.35,
+      "priorityFactor": 0.30,
+      "deadlineFactor": 0.10
     },
 
     "Радость": {
-      "emotionalLoadFactor": 0.1,
-      "priorityFactor": 0.3,
+      "emotionalLoadFactor": 0.15,
+      "priorityFactor": 0.25,
       "deadlineFactor": 0.35
     },
 
     "Спокойствие": {
-      "emotionalLoadFactor": 0.15,
-      "priorityFactor": 0.4,
-      "deadlineFactor": 0.25
+      "emotionalLoadFactor": 0.20,
+      "priorityFactor": 0.35,
+      "deadlineFactor": 0.20
     },
 
     "Усталость": {
-      "emotionalLoadFactor": 0.35,
-      "priorityFactor": 0.2,
-      "deadlineFactor": 0.1
+      "emotionalLoadFactor": 0.50,
+      "priorityFactor": 0.15,
+      "deadlineFactor": 0.10
     }
   };
 
@@ -128,10 +128,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
     
     switch(mood) {
       case "Грусть":
-        return 1 - (load / 5);
+        return (load <= 2) ? 1.0 : (load == 3) ? 0.6 : 0.2;
       
       case "Радость":
-        return load / 5;
+        return min(pow(load / 3, 2).toDouble(), 1.0);
       
       case "Спокойствие":
         return 1 - (pow(load - 3, 2) / 4).toDouble();
@@ -158,12 +158,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
     final DateTime now = DateTime.now();
     final DateTime deadline = (task["deadline"] as Timestamp).toDate();
     final double hoursLeft = deadline.difference(now).inHours.toDouble();
-    
-    if (hoursLeft <= 24) return 1.0;
-    if (hoursLeft <= 48) return 0.8;
-    if (hoursLeft <= 72) return 0.6;
-    if (hoursLeft <= 168) return 0.4;
-    return 0.2;
+
+    return 1.0 - (hoursLeft / 168).clamp(0.0, 1.0);
   }
 
   double _calculateCategoryScore(Map<String, dynamic> task, String mood) {
