@@ -17,7 +17,8 @@ class RecommendationsScreen extends StatefulWidget {
   _RecommendationsScreenState createState() => _RecommendationsScreenState();
 }
 
-class _RecommendationsScreenState extends State<RecommendationsScreen> with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
+class _RecommendationsScreenState extends State<RecommendationsScreen>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   String? currentMood;
   bool isOnline = true;
   List<Map<String, dynamic>> cachedTasks = [];
@@ -31,19 +32,16 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
       "priorityFactor": 0.30,
       "deadlineFactor": 0.10
     },
-
     "Радость": {
       "emotionalLoadFactor": 0.15,
       "priorityFactor": 0.25,
       "deadlineFactor": 0.35
     },
-
     "Спокойствие": {
       "emotionalLoadFactor": 0.20,
       "priorityFactor": 0.35,
       "deadlineFactor": 0.20
     },
-
     "Усталость": {
       "emotionalLoadFactor": 0.50,
       "priorityFactor": 0.15,
@@ -123,22 +121,27 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
     }
   }
 
-  double _calculateEmotionalCompatibility(Map<String, dynamic> task, String mood) {
+  double _calculateEmotionalCompatibility(
+      Map<String, dynamic> task, String mood) {
     final int load = task["emotionalLoad"] as int;
-    
-    switch(mood) {
+
+    switch (mood) {
       case "Грусть":
-        return (load <= 2) ? 1.0 : (load == 3) ? 0.6 : 0.2;
-      
+        return (load <= 2)
+            ? 1.0
+            : (load == 3)
+                ? 0.6
+                : 0.2;
+
       case "Радость":
         return min(pow(load / 3, 2).toDouble(), 1.0);
-      
+
       case "Спокойствие":
         return 1 - (pow(load - 3, 2) / 4).toDouble();
-      
+
       case "Усталость":
         return load <= 2 ? 1.0 : 0.0;
-      
+
       default:
         return 0.5;
     }
@@ -150,7 +153,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
       "medium": 0.6,
       "high": 1.0
     };
-    
+
     return priorityValues[task["priority"]] ?? 0.3;
   }
 
@@ -172,9 +175,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
 
     String mood = currentMood!;
     try {
-      final Map<String, dynamic> moodMap = 
-          (currentMood is String && currentMood!.startsWith('{')) 
-              ? json.decode(currentMood!) 
+      final Map<String, dynamic> moodMap =
+          (currentMood is String && currentMood!.startsWith('{'))
+              ? json.decode(currentMood!)
               : {'type': currentMood};
       mood = moodMap['type'] as String;
     } catch (e) {
@@ -182,18 +185,16 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
     }
 
     final weights = moodWeights[mood] ?? moodWeights["Спокойствие"]!;
-    
+
     final double emotionalScore = _calculateEmotionalCompatibility(task, mood);
     final double priorityScore = _calculatePriorityScore(task, mood);
     final double deadlineScore = _calculateDeadlineScore(task);
     final double categoryScore = _calculateCategoryScore(task, mood);
-    
-    return (
-      emotionalScore * weights["emotionalLoadFactor"]! +
-      priorityScore * weights["priorityFactor"]! +
-      deadlineScore * weights["deadlineFactor"]! +
-      categoryScore * 0.25
-    );
+
+    return (emotionalScore * weights["emotionalLoadFactor"]! +
+        priorityScore * weights["priorityFactor"]! +
+        deadlineScore * weights["deadlineFactor"]! +
+        categoryScore * 0.25);
   }
 
   Future<void> _initializeScreen() async {
@@ -216,7 +217,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
 
   void _initializeTasks() {
     _tasksSubscription?.cancel();
-    _tasksSubscription = TaskRepository.getTasksStream('active').listen((snapshot) {
+    _tasksSubscription =
+        TaskRepository.getTasksStream('active').listen((snapshot) {
       if (!mounted) return;
 
       List<Map<String, dynamic>> tasks = snapshot.docs.map((doc) {
@@ -258,21 +260,36 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
 
   Future<void> _saveMoodToCache(String mood) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('current_mood', mood);
+    final data = {
+      'type': mood,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+    await prefs.setString('current_mood', json.encode(data));
   }
 
   Future<String?> _loadMoodFromCache() async {
     final prefs = await SharedPreferences.getInstance();
-    final moodData = prefs.getString('current_mood');
-    if (moodData != null) {
-      try {
-        final Map<String, dynamic> moodMap = json.decode(moodData);
-        return moodMap['type'] as String;
-      } catch (e) {
-        return moodData;
+    final raw = prefs.getString('current_mood');
+    if (raw == null) return null;
+
+    try {
+      final data = json.decode(raw) as Map<String, dynamic>;
+      final ts = DateTime.parse(data['timestamp']);
+      final now = DateTime.now();
+      if (ts.year == now.year && ts.month == now.month && ts.day == now.day) {
+        return data['type'] as String;
       }
+    } catch (_) {
+      // старый формат без timestamp – игнорируем
     }
+    // устаревшие данные удаляем
+    await prefs.remove('current_mood');
     return null;
+  }
+
+  Future<void> _clearMoodCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('current_mood');
   }
 
   Future<void> _fetchUserMood() async {
@@ -295,9 +312,11 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
       if (snapshot.docs.isNotEmpty && mounted) {
         final serverMood = snapshot.docs.first['type'];
         await _saveMoodToCache(serverMood);
-        setState(() {
-          currentMood = serverMood;
-        });
+        setState(() => currentMood = serverMood);
+      } else if (mounted) {
+        // новой записи нет → сбрасываем
+        await _clearMoodCache();
+        setState(() => currentMood = null);
       }
     } catch (e) {
       print('Ошибка получения настроения: $e');
@@ -351,7 +370,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
                             "Укажите ваше настроение, чтобы получать более точные рекомендации.",
                             style: TextStyle(
                               fontSize: 14,
-                              color: Theme.of(context).textTheme.bodyMedium?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodyMedium?.color,
                             ),
                           ),
                         ),
@@ -380,7 +400,11 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
                         "Текущее настроение",
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.color
+                              ?.withOpacity(0.7),
                         ),
                       ),
                       SizedBox(height: 8),
@@ -500,7 +524,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> with Widg
             ),
           ),
           confirmDismiss: (direction) async {
-            return await TaskActions.showDeleteConfirmation(context, task['id']);
+            return await TaskActions.showDeleteConfirmation(
+                context, task['id']);
           },
           child: Container(
             margin: EdgeInsets.symmetric(vertical: 4),
