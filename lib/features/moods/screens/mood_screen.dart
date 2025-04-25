@@ -10,14 +10,16 @@ import '../widgets/mood_selector.dart';
 import '../widgets/gradient_mood_icon.dart';
 import '../widgets/mood_history.dart';
 
-final GlobalKey<MoodHistoryState> moodHistoryKey = GlobalKey<MoodHistoryState>();
+final GlobalKey<MoodHistoryState> moodHistoryKey =
+    GlobalKey<MoodHistoryState>();
 
 class MoodScreen extends StatefulWidget {
   @override
   _MoodScreenState createState() => _MoodScreenState();
 }
 
-class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
+class _MoodScreenState extends State<MoodScreen>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   String selectedMood = "";
   String note = "";
   String currentMood = "Настроение не выбрано";
@@ -54,7 +56,7 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
 
     await _checkConnectivity();
     await _loadLocalMood();
-    
+
     if (isOnline) {
       await _syncOfflineMoods();
       _initializeMoodStream();
@@ -85,14 +87,15 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
     }
   }
 
-  Future<void> _saveLocalMood(String mood, String note) async {
+  Future<void> _saveLocalMood(String mood, String note,
+      {bool synced = false}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final moodData = {
         'type': mood,
         'note': note,
         'timestamp': DateTime.now().toIso8601String(),
-        'synced': false,
+        'synced': synced,
       };
       await prefs.setString('current_mood', json.encode(moodData));
     } catch (e) {
@@ -109,8 +112,8 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
         final timestamp = DateTime.parse(moodData['timestamp']);
         final now = DateTime.now();
         // Check if the mood is from today
-        if (timestamp.year == now.year && 
-            timestamp.month == now.month && 
+        if (timestamp.year == now.year &&
+            timestamp.month == now.month &&
             timestamp.day == now.day) {
           return moodData;
         }
@@ -134,7 +137,8 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
         .collection("users")
         .doc(user.uid)
         .collection("moods")
-        .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where("timestamp",
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
         .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
         .snapshots()
         .listen((snapshot) async {
@@ -142,15 +146,21 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
         final serverMood = snapshot.docs.first;
         final serverData = serverMood.data() as Map<String, dynamic>;
         final serverTimestamp = serverData['timestamp'] as Timestamp;
-        
+
         // Get local mood to compare timestamps
         final localMood = await _getLocalMood();
-        final localTimestamp = localMood != null ? DateTime.parse(localMood['timestamp']) : null;
-        
+        final localTimestamp =
+            localMood != null ? DateTime.parse(localMood['timestamp']) : null;
+
         // Only update if server mood is newer
-        if (localTimestamp == null || serverTimestamp.toDate().isAfter(localTimestamp)) {
-          await _saveLocalMood(serverData['type'], serverData['note'] ?? "");
-          
+        if (localTimestamp == null ||
+            serverTimestamp.toDate().isAfter(localTimestamp)) {
+          await _saveLocalMood(
+            serverData['type'],
+            serverData['note'] ?? "",
+            synced: true,
+          );
+
           if (mounted) {
             setState(() {
               currentMood = serverData['type'];
@@ -200,7 +210,8 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
           .collection("users")
           .doc(user.uid)
           .collection("moods")
-          .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where("timestamp",
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
           .get();
 
@@ -208,8 +219,9 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
 
       if (moodSnapshot.docs.isNotEmpty) {
         final serverMood = moodSnapshot.docs.first;
-        final serverTimestamp = (serverMood.data() as Map<String, dynamic>)['timestamp'] as Timestamp;
-        
+        final serverTimestamp = (serverMood.data()
+            as Map<String, dynamic>)['timestamp'] as Timestamp;
+
         // Only update if local mood is newer
         if (localTimestamp.isAfter(serverTimestamp.toDate())) {
           await FirebaseFirestore.instance
@@ -254,13 +266,15 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
 
   void _saveMood() async {
     if (!mounted) return;
-    
+
     await _checkConnectivity();
 
     // Если нет интернета и пытаемся определить настроение автоматически
     if (selectedMood.isEmpty && note.isNotEmpty && !isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Для автоматического определения настроения требуется подключение к интернету. Пожалуйста, выберите настроение вручную.")),
+        SnackBar(
+            content: Text(
+                "Для автоматического определения настроения требуется подключение к интернету. Пожалуйста, выберите настроение вручную.")),
       );
       return;
     }
@@ -273,21 +287,25 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
         Map<String, double>? sentimentResult =
             await NaturalLanguageService.analyzeSentiment(note);
         if (!mounted) return;
-        
+
         if (sentimentResult != null) {
           double score = sentimentResult["score"]!;
           double magnitude = sentimentResult["magnitude"]!;
           selectedMood = _mapSentimentToMood(score, magnitude);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Ошибка анализа настроения. Пожалуйста, выберите настроение вручную.")),
+            SnackBar(
+                content: Text(
+                    "Ошибка анализа настроения. Пожалуйста, выберите настроение вручную.")),
           );
           return;
         }
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Ошибка анализа настроения. Пожалуйста, выберите настроение вручную.")),
+          SnackBar(
+              content: Text(
+                  "Ошибка анализа настроения. Пожалуйста, выберите настроение вручную.")),
         );
         return;
       }
@@ -316,7 +334,9 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Настроение сохранено локально и будет синхронизировано при появлении сети")),
+        SnackBar(
+            content: Text(
+                "Настроение сохранено локально и будет синхронизировано при появлении сети")),
       );
     }
 
@@ -388,7 +408,11 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                         "Текущее настроение",
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.color
+                              ?.withOpacity(0.7),
                         ),
                       ),
                       SizedBox(height: 8),
@@ -401,7 +425,9 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                           SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              currentMood.isEmpty ? "Настроение не выбрано" : currentMood,
+                              currentMood.isEmpty
+                                  ? "Настроение не выбрано"
+                                  : currentMood,
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
@@ -418,7 +444,11 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                   "Выберите ваше настроение",
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withOpacity(0.7),
                   ),
                 ),
                 SizedBox(height: 12),
@@ -427,7 +457,8 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                   onMoodSelected: (mood) {
                     setState(() {
                       if (selectedMood == mood) {
-                        selectedMood = ""; // Снимаем выбор, если нажали повторно
+                        selectedMood =
+                            ""; // Снимаем выбор, если нажали повторно
                       } else {
                         selectedMood = mood;
                       }
@@ -439,7 +470,11 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                   "Текстовая заметка",
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withOpacity(0.7),
                   ),
                 ),
                 SizedBox(height: 8),
@@ -460,7 +495,11 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                       border: InputBorder.none,
                       hintText: "Опишите, что повлияло на ваше настроение...",
                       hintStyle: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withOpacity(0.5),
                       ),
                     ),
                     onChanged: (value) {
@@ -477,7 +516,8 @@ class _MoodScreenState extends State<MoodScreen> with WidgetsBindingObserver, Au
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

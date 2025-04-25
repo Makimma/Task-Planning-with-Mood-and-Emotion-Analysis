@@ -9,6 +9,7 @@ import 'gradient_mood_icon.dart';
 
 class MoodHistory extends StatefulWidget {
   final bool isOnline;
+
   const MoodHistory({Key? key, required this.isOnline}) : super(key: key);
 
   @override
@@ -17,12 +18,47 @@ class MoodHistory extends StatefulWidget {
 
 class MoodHistoryState extends State<MoodHistory> {
   List<Map<String, dynamic>> _offlineMoods = [];
+  List<Map<String, dynamic>> _cachedOnlineMoods = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     loadOfflineMoods();
+    _loadHistoryCache();
+  }
+
+  Future<void> _loadHistoryCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('mood_history');
+    if (raw != null) {
+      try {
+        final List data = json.decode(raw);
+        setState(() {
+          _cachedOnlineMoods = data
+              .map<Map<String, dynamic>>((e) => {
+                    'type': e['type'],
+                    'note': e['note'],
+                    'timestamp': DateTime.parse(e['timestamp']),
+                  })
+              .toList();
+        });
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  }
+
+  Future<void> _saveHistoryCache(List<Map<String, dynamic>> moods) async {
+    final prefs = await SharedPreferences.getInstance();
+    final serialised = moods
+        .map((e) => {
+              'type': e['type'],
+              'note': e['note'],
+              'timestamp': (e['timestamp'] as DateTime).toIso8601String(),
+            })
+        .toList();
+    await prefs.setString('mood_history', json.encode(serialised));
   }
 
   Future<void> loadOfflineMoods() async {
@@ -36,8 +72,8 @@ class MoodHistoryState extends State<MoodHistory> {
           final timestamp = DateTime.parse(moodData['timestamp']);
           final now = DateTime.now();
           // Check if the mood is from today
-          if (timestamp.year == now.year && 
-              timestamp.month == now.month && 
+          if (timestamp.year == now.year &&
+              timestamp.month == now.month &&
               timestamp.day == now.day) {
             _offlineMoods = [
               {
@@ -66,7 +102,9 @@ class MoodHistoryState extends State<MoodHistory> {
   Widget build(BuildContext context) {
     // Если нет подключения к интернету, показываем локальные данные
     if (!widget.isOnline) {
-      return _buildMoodList(_offlineMoods);
+      final moods =
+          _cachedOnlineMoods.isNotEmpty ? _cachedOnlineMoods : _offlineMoods;
+      return _buildMoodList(moods);
     }
 
     return StreamBuilder<QuerySnapshot>(
@@ -82,17 +120,28 @@ class MoodHistoryState extends State<MoodHistory> {
         }
 
         final onlineMoods = snapshot.data?.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return {
-            'type': data['type'],
-            'note': data['note'],
-            'timestamp': (data['timestamp'] as Timestamp).toDate(),
-          };
-        }).toList() ?? [];
+              final data = doc.data() as Map<String, dynamic>;
+              return {
+                'type': data['type'],
+                'note': data['note'],
+                'timestamp': (data['timestamp'] as Timestamp).toDate(),
+              };
+            }).toList() ??
+            [];
+
+        // сохраняем в память и в SharedPreferences
+        if (onlineMoods.isNotEmpty) {
+          _cachedOnlineMoods = onlineMoods;
+          _saveHistoryCache(onlineMoods);
+        }
 
         // Если нет онлайн данных, показываем офлайн данные
-        final moods = onlineMoods.isEmpty ? _offlineMoods : onlineMoods;
-        
+        final moods = onlineMoods.isEmpty
+            ? (_cachedOnlineMoods.isNotEmpty
+                ? _cachedOnlineMoods
+                : _offlineMoods)
+            : onlineMoods;
+
         return _buildMoodList(moods);
       },
     );
@@ -104,7 +153,8 @@ class MoodHistoryState extends State<MoodHistory> {
         child: Text(
           'История настроений пуста',
           style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+            color:
+                Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
           ),
         ),
       );
@@ -118,7 +168,7 @@ class MoodHistoryState extends State<MoodHistory> {
         final mood = moods[index];
         final timestamp = mood['timestamp'] as DateTime;
         final formattedDate = DateFormat('dd.MM.yyyy HH:mm').format(timestamp);
-        
+
         return Container(
           margin: EdgeInsets.only(bottom: 12),
           padding: EdgeInsets.all(16),
@@ -151,14 +201,19 @@ class MoodHistoryState extends State<MoodHistory> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (mood['note'] != null && mood['note'].toString().isNotEmpty)
+                    if (mood['note'] != null &&
+                        mood['note'].toString().isNotEmpty)
                       Padding(
                         padding: EdgeInsets.only(top: 4),
                         child: Text(
                           mood['note'].toString(),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.color
+                                ?.withOpacity(0.7),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -171,7 +226,11 @@ class MoodHistoryState extends State<MoodHistory> {
                 formattedDate,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                  color: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.color
+                      ?.withOpacity(0.5),
                 ),
               ),
             ],
@@ -195,4 +254,4 @@ class MoodHistoryState extends State<MoodHistory> {
         .limit(10)
         .snapshots();
   }
-} 
+}

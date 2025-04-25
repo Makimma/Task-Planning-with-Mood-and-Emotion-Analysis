@@ -258,13 +258,28 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
     }
   }
 
-  Future<void> _saveMoodToCache(String mood) async {
+  Future<void> _saveMoodToCache(
+    String mood,
+    DateTime timestamp, {
+    bool synced = true,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final data = {
-      'type': mood,
-      'timestamp': DateTime.now().toIso8601String(),
-    };
-    await prefs.setString('current_mood', json.encode(data));
+    // если уже лежит запись с тем же ts – выходим без перезаписи
+    final raw = prefs.getString('current_mood');
+    if (raw != null) {
+      try {
+        final Map<String, dynamic> old = json.decode(raw);
+        if (old['timestamp'] == timestamp.toIso8601String()) return;
+      } catch (_) {}
+    }
+    await prefs.setString(
+      'current_mood',
+      json.encode({
+        'type': mood,
+        'timestamp': timestamp.toIso8601String(),
+        'synced': synced,
+      }),
+    );
   }
 
   Future<String?> _loadMoodFromCache() async {
@@ -310,8 +325,11 @@ class _RecommendationsScreenState extends State<RecommendationsScreen>
           .get();
 
       if (snapshot.docs.isNotEmpty && mounted) {
-        final serverMood = snapshot.docs.first['type'];
-        await _saveMoodToCache(serverMood);
+        final doc = snapshot.docs.first;
+        final serverMood = doc['type'] as String;
+        final ts = (doc['timestamp'] as Timestamp).toDate();
+
+        await _saveMoodToCache(serverMood, ts, synced: true);
         setState(() => currentMood = serverMood);
       } else if (mounted) {
         // новой записи нет → сбрасываем
