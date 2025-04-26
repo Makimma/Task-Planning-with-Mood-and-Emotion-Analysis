@@ -15,7 +15,9 @@ class AuthService {
         UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
         return userCredential.user;
       } else {
-        final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+        final GoogleSignInAccount? googleUser = await GoogleSignIn(
+          scopes: ["profile", "email"],
+        ).signIn();
         final GoogleSignInAuthentication googleAuth = await googleUser!.authentication;
 
         final AuthCredential credential = GoogleAuthProvider.credential(

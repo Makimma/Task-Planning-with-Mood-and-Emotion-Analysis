@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
 import 'gradient_mood_icon.dart';
 
@@ -27,6 +26,9 @@ class MoodHistoryState extends State<MoodHistory> {
     loadOfflineMoods();
     _loadHistoryCache();
   }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   Future<void> _loadHistoryCache() async {
     final prefs = await SharedPreferences.getInstance();
@@ -75,13 +77,21 @@ class MoodHistoryState extends State<MoodHistory> {
           if (timestamp.year == now.year &&
               timestamp.month == now.month &&
               timestamp.day == now.day) {
-            _offlineMoods = [
-              {
-                'type': moodData['type'],
-                'note': moodData['note'],
-                'timestamp': timestamp,
-              }
-            ];
+            final newEntry = {
+              'type': moodData['type'],
+              'note': moodData['note'],
+              'timestamp': timestamp,
+            };
+            final current = [..._cachedOnlineMoods];
+
+            current.removeWhere(
+                (e) => _isSameDay(e['timestamp'] as DateTime, timestamp));
+
+            current.insert(0, newEntry);
+
+            _offlineMoods = current;
+            _cachedOnlineMoods = current;
+            _saveHistoryCache(current);
           } else {
             _offlineMoods = [];
           }
@@ -103,7 +113,7 @@ class MoodHistoryState extends State<MoodHistory> {
     // Если нет подключения к интернету, показываем локальные данные
     if (!widget.isOnline) {
       final moods =
-          _cachedOnlineMoods.isNotEmpty ? _cachedOnlineMoods : _offlineMoods;
+          _offlineMoods.isNotEmpty ? _offlineMoods : _cachedOnlineMoods;
       return _buildMoodList(moods);
     }
 
@@ -129,18 +139,30 @@ class MoodHistoryState extends State<MoodHistory> {
             }).toList() ??
             [];
 
-        // сохраняем в память и в SharedPreferences
-        if (onlineMoods.isNotEmpty) {
-          _cachedOnlineMoods = onlineMoods;
-          _saveHistoryCache(onlineMoods);
+        // Объединяем онлайн-список с тем, что накоплено локально
+        List<Map<String, dynamic>> merged = [...onlineMoods];
+        for (final local in _offlineMoods) {
+          final tsLocal = local['timestamp'] as DateTime;
+          final exists = merged.any(
+              (e) => (e['timestamp'] as DateTime).isAtSameMomentAs(tsLocal));
+          if (!exists) merged.insert(0, local); // вставляем «свежак» в начало
         }
 
-        // Если нет онлайн данных, показываем офлайн данные
-        final moods = onlineMoods.isEmpty
-            ? (_cachedOnlineMoods.isNotEmpty
-                ? _cachedOnlineMoods
-                : _offlineMoods)
-            : onlineMoods;
+        // ️Обновляем кеш только если что-то изменилось
+        if (merged.isNotEmpty) {
+          _cachedOnlineMoods = merged;
+          _saveHistoryCache(merged);
+        }
+
+        // оставляем только первую запись на каждый день
+        final Map<String, Map<String, dynamic>> uniqueByDay = {};
+        for (final e in merged) {
+          final dt = e['timestamp'] as DateTime;
+          final key = '${dt.year}-${dt.month}-${dt.day}';
+          uniqueByDay.putIfAbsent(key, () => e);
+        }
+
+        final moods = uniqueByDay.values.toList();
 
         return _buildMoodList(moods);
       },
