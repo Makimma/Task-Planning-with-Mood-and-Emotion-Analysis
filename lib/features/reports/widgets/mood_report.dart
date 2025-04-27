@@ -101,7 +101,7 @@ class MoodReport extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Распределение задач",
+            "Распределение выполненных задач",
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
