@@ -6,6 +6,7 @@ import '../../../../core/base/base_state.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../screens/auth_screen.dart';
+import 'dart:io';
 
 class AuthViewModel extends BaseViewModel {
   final AuthService _authService;
@@ -28,7 +29,41 @@ class AuthViewModel extends BaseViewModel {
 
   void toggleAuthMode() {
     _isLogin = !_isLogin;
+    _state = InitialState();
     notify();
+  }
+
+  String _getDetailedErrorMessage(String code) {
+    switch (code) {
+      case 'invalid-email':
+        return 'Неверный формат email адреса';
+      case 'user-disabled':
+        return 'Этот аккаунт был отключен';
+      case 'user-not-found':
+        return 'Пользователь с таким email не найден';
+      case 'wrong-password':
+        return 'Неверный пароль';
+      case 'email-already-in-use':
+        return 'Email уже используется другим аккаунтом';
+      case 'operation-not-allowed':
+        return 'Операция не разрешена. Пожалуйста, обратитесь в поддержку';
+      case 'weak-password':
+        return 'Пароль слишком слабый. Используйте минимум 6 символов';
+      case 'network-request-failed':
+        return 'Ошибка сети. Проверьте подключение к интернету';
+      case 'too-many-requests':
+        return 'Слишком много попыток входа. Попробуйте позже';
+      case 'invalid-credential':
+        return 'Неверные учетные данные';
+      case 'account-exists-with-different-credential':
+        return 'Аккаунт уже существует с другим способом входа';
+      case 'requires-recent-login':
+        return 'Требуется повторная авторизация. Пожалуйста, выйдите и войдите снова';
+      case 'popup-closed-by-user':
+        return 'Окно авторизации было закрыто';
+      default:
+        return 'Произошла ошибка: $code';
+    }
   }
 
   Future<void> authenticate(String email, String password) async {
@@ -36,16 +71,48 @@ class AuthViewModel extends BaseViewModel {
     _state = LoadingState();
     notify();
 
-    final result = _isLogin
-        ? await _authService.login(email, password)
-        : await _authService.register(email, password);
+    try {
+      if (!await _checkInternetConnection()) {
+        _state = ErrorState('Отсутствует подключение к интернету');
+        setLoading(false);
+        notify();
+        return;
+      }
 
-    if (result.isSuccess) {
-      _userModel = result.data;
-      _firebaseUser = FirebaseAuth.instance.currentUser;
-      _state = SuccessState(_userModel);
-    } else {
-      _state = ErrorState(result.error ?? 'Ошибка ${_isLogin ? 'входа' : 'регистрации'}');
+      final result = _isLogin
+          ? await _authService.login(email, password)
+          : await _authService.register(email, password);
+
+      if (result.isSuccess) {
+        _userModel = result.data;
+        _firebaseUser = FirebaseAuth.instance.currentUser;
+        _state = SuccessState(_userModel);
+      } else {
+        String errorMessage = result.error ?? 'Неизвестная ошибка';
+        if (result.error != null && result.error!.contains('firebase_auth')) {
+          final parts = result.error!.split('/');
+          if (parts.length >= 2) {
+            final code = parts[1].trim();
+            errorMessage = _getDetailedErrorMessage(code);
+          }
+        }
+        _state = ErrorState(errorMessage);
+      }
+    } catch (e) {
+      String errorMessage;
+      if (e is FirebaseAuthException) {
+        errorMessage = _getDetailedErrorMessage(e.code);
+      } else {
+        errorMessage = e.toString();
+        if (errorMessage.contains('firebase_auth')) {
+          final parts = errorMessage.split('/');
+          if (parts.length >= 2) {
+            final code = parts[1].trim();
+            errorMessage = _getDetailedErrorMessage(code);
+          }
+        }
+      }
+      _state = ErrorState(errorMessage);
     }
 
     setLoading(false);
@@ -57,18 +124,59 @@ class AuthViewModel extends BaseViewModel {
     _state = LoadingState();
     notify();
 
-    final result = await _authService.signInWithGoogle();
+    try {
+      if (!await _checkInternetConnection()) {
+        _state = ErrorState('Отсутствует подключение к интернету');
+        setLoading(false);
+        notify();
+        return;
+      }
 
-    if (result.isSuccess) {
-      _userModel = result.data;
-      _firebaseUser = FirebaseAuth.instance.currentUser;
-      _state = SuccessState(_userModel);
-    } else {
-      _state = ErrorState(result.error ?? 'Ошибка входа через Google');
+      final result = await _authService.signInWithGoogle();
+
+      if (result.isSuccess) {
+        _userModel = result.data;
+        _firebaseUser = FirebaseAuth.instance.currentUser;
+        _state = SuccessState(_userModel);
+      } else {
+        String errorMessage = result.error ?? 'Ошибка входа через Google';
+        if (result.error != null && result.error!.contains('firebase_auth')) {
+          final parts = result.error!.split('/');
+          if (parts.length >= 2) {
+            final code = parts[1].trim();
+            errorMessage = _getDetailedErrorMessage(code);
+          }
+        }
+        _state = ErrorState(errorMessage);
+      }
+    } catch (e) {
+      String errorMessage;
+      if (e is FirebaseAuthException) {
+        errorMessage = _getDetailedErrorMessage(e.code);
+      } else {
+        errorMessage = e.toString();
+        if (errorMessage.contains('firebase_auth')) {
+          final parts = errorMessage.split('/');
+          if (parts.length >= 2) {
+            final code = parts[1].trim();
+            errorMessage = _getDetailedErrorMessage(code);
+          }
+        }
+      }
+      _state = ErrorState(errorMessage);
     }
 
     setLoading(false);
     notify();
+  }
+
+  Future<bool> _checkInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
   }
 
   Future<void> logout(BuildContext context) async {
@@ -76,20 +184,43 @@ class AuthViewModel extends BaseViewModel {
     _state = LoadingState();
     notify();
 
-    final result = await _authService.logout();
+    try {
+      if (!await _checkInternetConnection()) {
+        _state = ErrorState('Отсутствует подключение к интернету');
+        setLoading(false);
+        notify();
+        return;
+      }
 
-    if (result.isSuccess) {
-      _userModel = null;
-      _firebaseUser = null;
-      _state = InitialState();
-      
-      // Перенаправляем на экран авторизации
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => AuthScreen()),
-        (route) => false,
-      );
-    } else {
-      _state = ErrorState(result.error ?? 'Ошибка выхода');
+      final result = await _authService.logout();
+
+      if (result.isSuccess) {
+        _userModel = null;
+        _firebaseUser = null;
+        _state = InitialState();
+        
+        if (_context != null && _context!.mounted) {
+          Navigator.of(_context!).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => AuthScreen()),
+            (route) => false,
+          );
+        }
+      } else {
+        if (result.error != null) {
+          String errorMessage = result.error!;
+          if (errorMessage.contains('firebase_auth')) {
+            final code = errorMessage.split('/').last.trim();
+            errorMessage = _getDetailedErrorMessage(code);
+          }
+          _state = ErrorState(errorMessage);
+        }
+      }
+    } catch (e) {
+      if (e is FirebaseAuthException) {
+        _state = ErrorState(_getDetailedErrorMessage(e.code));
+      } else {
+        _state = ErrorState('Произошла ошибка при выходе');
+      }
     }
 
     setLoading(false);

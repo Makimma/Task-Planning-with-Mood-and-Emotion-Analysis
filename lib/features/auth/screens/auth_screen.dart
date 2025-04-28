@@ -43,6 +43,45 @@ class _AuthScreenState extends State<AuthScreen> {
     viewModel.signInWithGoogle();
   }
 
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.white),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+            ? Color(0xFFB71C1C) // темно-красный для темной темы
+            : Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: EdgeInsets.all(8),
+        duration: Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthViewModel>(
@@ -55,6 +94,10 @@ class _AuthScreenState extends State<AuthScreen> {
                 builder: (context) => MainScreen(user: viewModel.firebaseUser!),
               ),
             );
+          });
+        } else if (viewModel.state is ErrorState) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showErrorSnackBar((viewModel.state as ErrorState).message);
           });
         }
 
@@ -192,15 +235,6 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ],
                       SizedBox(height: 30),
-                      if (viewModel.state is ErrorState)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: Text(
-                            (viewModel.state as ErrorState).message,
-                            style: TextStyle(color: Colors.red),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
                       SizedBox(
                         width: 250,
                         child: ElevatedButton(
