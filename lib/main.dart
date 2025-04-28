@@ -5,8 +5,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'features/auth/screens/auth_screen.dart';
+import 'features/auth/views/login_screen.dart';
 import 'core/navigation/main_screen.dart';
+import 'core/di/service_locator.dart';
+import 'features/auth/viewmodels/auth_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +55,9 @@ void main() async {
       AwesomeNotifications().requestPermissionToSendNotifications();
     }
   });
+
+  // Инициализация DI
+  await ServiceLocator.init();
 
   runApp(
       // DevicePreview(
@@ -120,69 +127,74 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      // debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: Color(0xFFF5F5F7),
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          iconTheme: IconThemeData(color: Colors.black87),
-          elevation: 0,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => sl<AuthViewModel>()),
+      ],
+      child: MaterialApp(
+        // debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: Color(0xFFF5F5F7),
+          appBarTheme: AppBarTheme(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            iconTheme: IconThemeData(color: Colors.black87),
+            elevation: 0,
+          ),
+          cardColor: Colors.white,
+          colorScheme: ColorScheme.light(
+            primary: Colors.blue,
+            secondary: Colors.blueAccent,
+            background: Color(0xFFF5F5F7),
+            surface: Colors.white,
+            onPrimary: Colors.white,
+            onSecondary: Colors.white,
+            onSurface: Colors.black87,
+            onBackground: Colors.black87,
+          ),
+          textTheme: TextTheme(
+            bodyMedium: TextStyle(color: Colors.black87),
+            titleMedium: TextStyle(color: Colors.black),
+          ),
+          dividerColor: Colors.grey[300],
+          shadowColor: Colors.black.withOpacity(0.1),
         ),
-        cardColor: Colors.white,
-        colorScheme: ColorScheme.light(
-          primary: Colors.blue,
-          secondary: Colors.blueAccent,
-          background: Color(0xFFF5F5F7),
-          surface: Colors.white,
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
-          onSurface: Colors.black87,
-          onBackground: Colors.black87,
+        darkTheme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Colors.black,
+          appBarTheme: AppBarTheme(
+            backgroundColor: Colors.grey[900],
+            foregroundColor: Colors.white,
+            iconTheme: IconThemeData(color: Colors.white),
+          ),
+          cardColor: Colors.grey[850],
+          colorScheme: ColorScheme.dark(
+            primary: Colors.blueAccent,
+            secondary: Colors.blueGrey,
+            background: Colors.black,
+            surface: Colors.grey[800]!,
+            onPrimary: Colors.white,
+            onSecondary: Colors.white,
+            onSurface: Colors.white,
+            onBackground: Colors.white,
+          ),
+          textTheme: TextTheme(
+            bodyMedium: TextStyle(color: Colors.white70),
+            titleMedium: TextStyle(color: Colors.white),
+          ),
         ),
-        textTheme: TextTheme(
-          bodyMedium: TextStyle(color: Colors.black87),
-          titleMedium: TextStyle(color: Colors.black),
+        themeMode: _themeMode,
+        home: StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return MainScreen(user: snapshot.data!);
+            } else {
+              return AuthScreen();
+            }
+          },
         ),
-        dividerColor: Colors.grey[300],
-        shadowColor: Colors.black.withOpacity(0.1),
-      ),
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.black,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.grey[900],
-          foregroundColor: Colors.white,
-          iconTheme: IconThemeData(color: Colors.white),
-        ),
-        cardColor: Colors.grey[850],
-        colorScheme: ColorScheme.dark(
-          primary: Colors.blueAccent,
-          secondary: Colors.blueGrey,
-          background: Colors.black,
-          surface: Colors.grey[800]!,
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
-          onSurface: Colors.white,
-          onBackground: Colors.white,
-        ),
-        textTheme: TextTheme(
-          bodyMedium: TextStyle(color: Colors.white70),
-          titleMedium: TextStyle(color: Colors.white),
-        ),
-      ),
-      themeMode: _themeMode,
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            return MainScreen(user: snapshot.data!);
-          } else {
-            return AuthScreen();
-          }
-        },
       ),
     );
   }

@@ -4,68 +4,132 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/services/local_data_service.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../../core/base/base_service.dart';
+import '../../../../core/utils/result.dart';
+import '../models/user_model.dart';
 
-class AuthService {
+class AuthService extends BaseService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  Future<User?> signInWithGoogle() async {
-    try {
-      if (kIsWeb) {
-        GoogleAuthProvider googleProvider = GoogleAuthProvider();
-        UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
-        return userCredential.user;
-      } else {
-        final GoogleSignInAccount? googleUser = await GoogleSignIn(
-          scopes: ["profile", "email"],
-        ).signIn();
-        final GoogleSignInAuthentication googleAuth = await googleUser!.authentication;
+  Future<Result<UserModel>> login(String email, String password) async {
+    return handleError(() async {
+      try {
+        final userCredential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        
+        if (userCredential.user != null) {
+          final user = userCredential.user!;
+          return Result.success(
+            UserModel(
+              id: user.uid,
+              email: user.email!,
+              name: user.displayName,
+            ),
+          );
+        }
+        return Result.error('Ошибка входа');
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+        return Result.error(_getErrorMessage(e.code));
+      }
+    });
+  }
 
-        final AuthCredential credential = GoogleAuthProvider.credential(
+  Future<Result<UserModel>> register(String email, String password) async {
+    return handleError(() async {
+      try {
+        final userCredential = await _auth.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        
+        if (userCredential.user != null) {
+          final user = userCredential.user!;
+          return Result.success(
+            UserModel(
+              id: user.uid,
+              email: user.email!,
+              name: user.displayName,
+            ),
+          );
+        }
+        return Result.error('Ошибка регистрации');
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+        return Result.error(_getErrorMessage(e.code));
+      }
+    });
+  }
+
+  Future<Result<UserModel>> signInWithGoogle() async {
+    return handleError(() async {
+      try {
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          return Result.error('Отменено пользователем');
+        }
+
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
 
-        final UserCredential userCredential = await _auth.signInWithCredential(credential);
-        await NotificationService.toggleNotifications(true);
-        return userCredential.user;
+        final userCredential = await _auth.signInWithCredential(credential);
+        if (userCredential.user != null) {
+          final user = userCredential.user!;
+          return Result.success(
+            UserModel(
+              id: user.uid,
+              email: user.email!,
+              name: user.displayName,
+            ),
+          );
+        }
+        return Result.error('Ошибка входа через Google');
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+        return Result.error(_getErrorMessage(e.code));
       }
-    } catch (e) {
-      print("Ошибка авторизации через Google: $e");
-      return null;
-    }
+    });
   }
 
-  Future<User?> signInWithEmail(String email, String password) async {
-    try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      await NotificationService.toggleNotifications(true);
-      return userCredential.user;
-    } catch (e) {
-      print("Ошибка входа: $e");
-      return null;
-    }
+  Future<Result<void>> logout() async {
+    return handleError(() async {
+      try {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+        return Result.success(null);
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+        return Result.error(_getErrorMessage(e.code));
+      }
+    });
   }
 
-  Future<User?> signUpWithEmail(String email, String password) async {
-    try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return userCredential.user;
-    } catch (e) {
-      print("Ошибка регистрации: $e");
-      return null;
+  String _getErrorMessage(String code) {
+    switch (code) {
+      case 'user-not-found':
+        return 'Пользователь не найден';
+      case 'wrong-password':
+        return 'Неверный пароль';
+      case 'invalid-email':
+        return 'Неверный формат email';
+      case 'email-already-in-use':
+        return 'Email уже используется';
+      case 'weak-password':
+        return 'Слабый пароль';
+      case 'operation-not-allowed':
+        return 'Операция не разрешена';
+      case 'user-disabled':
+        return 'Пользователь заблокирован';
+      case 'too-many-requests':
+        return 'Слишком много попыток входа. Попробуйте позже.';
+      default:
+        return 'Произошла ошибка';
     }
-  }
-
-  Future<void> signOut() async {
-    await _auth.signOut();
-    await GoogleSignIn().signOut();
-    await NotificationService.toggleNotifications(false);
-    await LocalDataService.clearAll();
   }
 }

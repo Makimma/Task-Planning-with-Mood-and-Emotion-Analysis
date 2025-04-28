@@ -139,7 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: "Выйти из аккаунта",
                   subtitle: "Все данные будут сохранены",
                   onTap: () async {
-                    await _authService.signOut();
+                    await _authService.logout();
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => AuthScreen()),

@@ -30,27 +30,26 @@ class _AuthScreenState extends State<AuthScreen> {
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
 
-    User? user;
-    if (isLogin) {
-      user = await _authService.signInWithEmail(email, password);
-    } else {
-      user = await _authService.signUpWithEmail(email, password);
-    }
+    final result = isLogin
+        ? await _authService.login(email, password)
+        : await _authService.register(email, password);
 
-    if (user != null) {
+    if (result.isSuccess && result.data != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MainScreen(user: user!)),
+        MaterialPageRoute(
+          builder: (context) => MainScreen(user: FirebaseAuth.instance.currentUser!),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Ошибка ${isLogin ? 'входа' : 'регистрации'}")),
+        SnackBar(content: Text(result.error ?? "Ошибка ${isLogin ? 'входа' : 'регистрации'}")),
       );
     }
   }
 
   void _signInWithGoogle() async {
-    User? user = await _authService.signInWithGoogle();
+    User? user = (await _authService.signInWithGoogle()) as User?;
     if (user != null) {
       Navigator.pushReplacement(
         context,
