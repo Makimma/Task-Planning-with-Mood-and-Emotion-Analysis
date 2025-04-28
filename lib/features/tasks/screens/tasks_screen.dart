@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_appp/features/tasks/services/task_actions.dart';
 import 'package:flutter_appp/features/tasks/services/task_repository.dart';
 import 'package:flutter_appp/features/tasks/widgets/task_card.dart';
@@ -10,6 +11,7 @@ import '../../../core/widgets/app_dropdown.dart';
 import '../widgets/filter_task_dialog.dart';
 import '../../../core/widgets/sort_selector.dart';
 import '../../../core/widgets/search_field.dart';
+import '../../../features/auth/screens/auth_screen.dart';
 
 class TasksScreen extends StatefulWidget {
   @override
@@ -37,6 +39,7 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
   bool _isInitialized = false;
   StreamSubscription? _activeTasksSubscription;
   StreamSubscription? _completedTasksSubscription;
+  StreamSubscription? _authStateSubscription;
 
   @override
   bool get wantKeepAlive => true;
@@ -44,29 +47,72 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
   @override
   void initState() {
     super.initState();
-    _initializeTasks();
+    _initializeScreen();
   }
 
   @override
   void dispose() {
     _activeTasksSubscription?.cancel();
     _completedTasksSubscription?.cancel();
+    _authStateSubscription?.cancel();
     super.dispose();
   }
 
+  void _initializeScreen() {
+    // Подписываемся на изменения состояния авторизации
+    _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user == null) {
+        // Если пользователь не авторизован, перенаправляем на экран авторизации
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => AuthScreen()),
+          (route) => false,
+        );
+      } else {
+        // Если пользователь авторизован, инициализируем задачи
+        _initializeTasks();
+      }
+    });
+  }
+
   void _initializeTasks() {
-    _activeTasksSubscription?.cancel();
-    _completedTasksSubscription?.cancel();
+    try {
+      _activeTasksSubscription?.cancel();
+      _completedTasksSubscription?.cancel();
 
-    _activeTasksSubscription = TaskRepository.getTasksStream("active").listen((snapshot) {
-      if (!mounted) return;
-      _updateTasks(snapshot, "active");
-    });
+      _activeTasksSubscription = TaskRepository.getTasksStream("active").listen(
+        (snapshot) {
+          if (!mounted) return;
+          _updateTasks(snapshot, "active");
+        },
+        onError: (error) {
+          print('Error fetching active tasks: $error');
+          if (error.toString().contains('Пользователь не авторизован')) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => AuthScreen()),
+              (route) => false,
+            );
+          }
+        },
+      );
 
-    _completedTasksSubscription = TaskRepository.getTasksStream("completed").listen((snapshot) {
-      if (!mounted) return;
-      _updateTasks(snapshot, "completed");
-    });
+      _completedTasksSubscription = TaskRepository.getTasksStream("completed").listen(
+        (snapshot) {
+          if (!mounted) return;
+          _updateTasks(snapshot, "completed");
+        },
+        onError: (error) {
+          print('Error fetching completed tasks: $error');
+        },
+      );
+    } catch (e) {
+      print('Error initializing tasks: $e');
+      if (e.toString().contains('Пользователь не авторизован')) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => AuthScreen()),
+          (route) => false,
+        );
+      }
+    }
   }
 
   void _updateTasks(QuerySnapshot snapshot, String status) {

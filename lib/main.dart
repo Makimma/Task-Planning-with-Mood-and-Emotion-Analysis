@@ -7,7 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'features/auth/screens/auth_screen.dart';
-import 'features/auth/views/login_screen.dart';
 import 'core/navigation/main_screen.dart';
 import 'core/di/service_locator.dart';
 import 'features/auth/viewmodels/auth_viewmodel.dart';
@@ -59,11 +58,7 @@ void main() async {
   // Инициализация DI
   await ServiceLocator.init();
 
-  runApp(
-      // DevicePreview(
-      //     builder: (context) =>
-              MyApp()//)
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -188,11 +183,15 @@ class _MyAppState extends State<MyApp> {
         home: StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return MainScreen(user: snapshot.data!);
-            } else {
-              return AuthScreen();
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
             }
+            
+            if (snapshot.hasData && snapshot.data != null) {
+              return MainScreen(user: snapshot.data!);
+            }
+            
+            return AuthScreen();
           },
         ),
       ),

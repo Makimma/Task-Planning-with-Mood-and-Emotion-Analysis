@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../../../main.dart';
 import '../../../core/services/notification_service.dart';
 import '../../auth/screens/auth_screen.dart';
 import '../../auth/services/auth_service.dart';
+import '../../auth/viewmodels/auth_viewmodel.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -11,7 +13,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final AuthService _authService = AuthService();
   bool _notificationsEnabled = true;
   late String _selectedTheme;
 
@@ -139,11 +140,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: "Выйти из аккаунта",
                   subtitle: "Все данные будут сохранены",
                   onTap: () async {
-                    await _authService.logout();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => AuthScreen()),
-                    );
+                    final viewModel = context.read<AuthViewModel>();
+                    await viewModel.logout(context);
                   },
                   trailing: Icon(
                     Icons.logout,
