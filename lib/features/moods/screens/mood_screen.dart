@@ -286,14 +286,11 @@ class _MoodScreenState extends State<MoodScreen>
       try {
         if (!mounted) return;
 
-        Map<String, double>? sentimentResult =
-            await NaturalLanguageService.analyzeSentiment(note);
+        String? moodResult = await NaturalLanguageService.analyzeMood(note);
         if (!mounted) return;
 
-        if (sentimentResult != null) {
-          double score = sentimentResult["score"]!;
-          double magnitude = sentimentResult["magnitude"]!;
-          selectedMood = _mapSentimentToMood(score, magnitude);
+        if (moodResult != null) {
+          selectedMood = moodResult;
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -349,19 +346,6 @@ class _MoodScreenState extends State<MoodScreen>
       note = "";
     });
     _noteController.clear();
-  }
-
-  String _mapSentimentToMood(double score, double magnitude) {
-    if (score < -0.5 && magnitude >= 1.0) {
-      return "Грусть";
-    }
-    if (score >= 0.5 && magnitude < 3.0) {
-      return "Радость";
-    }
-    if (score <= -0.3 && magnitude >= 0.5 && magnitude < 1.5) {
-      return "Усталость";
-    }
-    return "Спокойствие";
   }
 
   @override

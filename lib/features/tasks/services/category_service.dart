@@ -3,9 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class CategoryService {
-  static const String _apiKey = "AIzaSyCWimDE_6lk378H3VMBPegyoMu6soDQxv4";
-  static const String _baseUrl = "https://language.googleapis.com/v2/documents:classifyText?key=$_apiKey";
-
   static String _mapGoogleCategory(String googleCategory) {
     const categoryMap = {
       // Работа
@@ -90,43 +87,26 @@ class CategoryService {
     return 'Другое';
   }
 
-  static Future<String?> classifyText(String text) async {
-    // Check if text contains actual words
-    final trimmedText = text.trim();
-    if (trimmedText.isEmpty || trimmedText.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length == 0) {
-      return 'Другое';
+  static Future<String> classifyText(String text) async {
+    const endpoint = "https://tiny-hill-7228.fam-ivan2003.workers.dev/classify";
+    if (text.trim().isEmpty) return 'Другое';
+
+    final resp = await http
+        .post(Uri.parse(endpoint),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"text": text}))
+        .timeout(const Duration(seconds: 15));
+
+    if (resp.statusCode != 200) {
+      throw Exception("Proxy ${resp.statusCode}: ${resp.body}");
     }
 
-    final requestBody = {
-      "document": {
-        "type": "PLAIN_TEXT",
-        "content": text
-      }
-    };
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    final categories = data['categories'] as List<dynamic>?;
 
-    try {
-      final response = await http.post(
-        Uri.parse(_baseUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
-      print('Response body: ${response.body}');
+    if (categories == null || categories.isEmpty) return 'Другое';
 
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        
-        if (jsonResponse['categories'] != null && jsonResponse['categories'].isNotEmpty) {
-          final categories = jsonResponse['categories'] as List;
-          final topCategory = categories.first['name'] as String;
-          final mappedCategory = _mapGoogleCategory(topCategory);
-          return mappedCategory;
-        }
-      }
-    } catch (e) {
-      // throw Exception("Ошибка: ${e.toString()}");
-      throw Exception("Что-то пошло не так");
-    }
-    
-    return 'Другое';
+    final googleName = categories.first['name'] as String;
+    return _mapGoogleCategory(googleName);
   }
 }
