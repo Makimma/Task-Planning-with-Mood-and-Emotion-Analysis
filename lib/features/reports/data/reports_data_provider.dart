@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_appp/features/tasks/services/task_repository.dart';
 
 class ReportsDataProvider {
@@ -49,17 +51,15 @@ class ReportsDataProvider {
     _tasksSubscription?.cancel();
     _moodsSubscription?.cancel();
 
-    // Создаем Completer для каждого потока данных
+    // Создаем Completer для каждого потока
     final taskCompleter = Completer<void>();
     final moodCompleter = Completer<void>();
     final productivityCompleter = Completer<void>();
 
-    // Инициализируем потоки данных
     await _fetchTaskCounts(taskCompleter);
     await _fetchMoodHistory(moodCompleter);
     await _fetchMoodProductivity(productivityCompleter);
 
-    // Ждем завершения всех операций
     await Future.wait([
       taskCompleter.future,
       moodCompleter.future,
@@ -215,6 +215,16 @@ class ReportsDataProvider {
         ? now.subtract(Duration(days: 7))
         : now.subtract(Duration(days: 30));
 
+    // Получаем локальное настроение
+    final prefs = await SharedPreferences.getInstance();
+    final localMoodString = prefs.getString('current_mood');
+    Map<String, dynamic>? localMoodData;
+    DateTime? localMoodDate;
+    if (localMoodString != null) {
+      localMoodData = json.decode(localMoodString);
+      localMoodDate = DateTime.parse(localMoodData?['timestamp']);
+    }
+
     _moodsSubscription = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
@@ -223,24 +233,37 @@ class ReportsDataProvider {
         .snapshots()
         .listen(
       (snapshot) {
-        List<Map<String, dynamic>> moods = [];
-        List<Map<String, dynamic>> moodDataList = [];
+        final Map<String, Map<String, dynamic>> moodsByDay = {};
 
+        // Сначала добавляем Firestore-записи
         for (var doc in snapshot.docs) {
           DateTime timestamp = (doc['timestamp'] as Timestamp).toDate();
           if (timestamp.isAfter(startDate)) {
-            moods.add({
-              "date": timestamp,
-              "mood": doc['type'],
-            });
-            
-            moodDataList.add({
+            final dateKey = "${timestamp.year}-${timestamp.month}-${timestamp.day}";
+            moodsByDay[dateKey] = {
               "date": timestamp,
               "mood": doc['type'],
               "note": doc['note'],
-            });
+            };
           }
         }
+
+        // Если есть локальное настроение за этот день — оно приоритетнее
+        if (localMoodData != null && localMoodDate != null && localMoodDate.isAfter(startDate)) {
+          final dateKey = "${localMoodDate.year}-${localMoodDate.month}-${localMoodDate.day}";
+          moodsByDay[dateKey] = {
+            "date": localMoodDate,
+            "mood": localMoodData['type'],
+            "note": localMoodData['note'],
+          };
+        }
+
+        // Формируем итоговые списки
+        final moodDataList = moodsByDay.values.toList()..sort((a, b) => a['date'].compareTo(b['date']));
+        final moods = moodDataList.map((m) => {
+          "date": m["date"],
+          "mood": m["mood"],
+        }).toList();
 
         moodData = moodDataList;
         _calculateMoodStatistics(moods);

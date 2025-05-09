@@ -1,31 +1,42 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'dart:convert';
-import '../../../core/services/nlp_service.dart';
+import '../viewmodels/mood_viewmodel.dart';
 import '../widgets/mood_selector.dart';
 import '../widgets/gradient_mood_icon.dart';
 import '../widgets/mood_history.dart';
 
-final GlobalKey<MoodHistoryState> moodHistoryKey =
-    GlobalKey<MoodHistoryState>();
+final GlobalKey<MoodHistoryState> moodHistoryKey = GlobalKey<MoodHistoryState>();
 
-class MoodScreen extends StatefulWidget {
+class MoodScreen extends StatelessWidget {
+  const MoodScreen({super.key});
+
   @override
-  _MoodScreenState createState() => _MoodScreenState();
+  Widget build(BuildContext context) {
+    return FutureBuilder<SharedPreferences>(
+      future: SharedPreferences.getInstance(),
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return ChangeNotifierProvider(
+          create: (_) => MoodViewModel(prefs: snap.data!),
+          child: _MoodScreenContent(),
+        );
+      },
+    );
+  }
 }
 
-class _MoodScreenState extends State<MoodScreen>
-    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
-  String selectedMood = "";
-  String note = "";
-  String currentMood = "Настроение не выбрано";
-  bool isOnline = true;
-  bool _isInitialized = false;
-  StreamSubscription? _moodSubscription;
+class _MoodScreenContent extends StatefulWidget {
+  @override
+  __MoodScreenContentState createState() => __MoodScreenContentState();
+}
+
+class __MoodScreenContentState extends State<_MoodScreenContent>
+    with AutomaticKeepAliveClientMixin {
   final TextEditingController _noteController = TextEditingController();
 
   @override
@@ -34,343 +45,34 @@ class _MoodScreenState extends State<MoodScreen>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _initializeScreen();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MoodViewModel>().init();
+    });
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _moodSubscription?.cancel();
     _noteController.dispose();
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _initializeScreen();
-    }
-  }
-
-  Future<void> _initializeScreen() async {
-    if (_isInitialized) return;
-
-    await _checkConnectivity();
-    await _loadLocalMood();
-
-    if (isOnline) {
-      await _syncOfflineMoods();
-      _initializeMoodStream();
-    } else {
-      setState(() {
-        _isInitialized = true;
-      });
-    }
-  }
-
-  Future<void> _checkConnectivity() async {
-    try {
-      var connectivityResult = await Connectivity().checkConnectivity();
-      if (!mounted) return;
-      final wasOnline = isOnline;
-      setState(() {
-        isOnline = connectivityResult != ConnectivityResult.none;
-      });
-      // Если состояние подключения изменилось, обновляем историю
-      if (wasOnline != isOnline) {
-        moodHistoryKey.currentState?.loadOfflineMoods();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        isOnline = false;
-      });
-    }
-  }
-
-  Future<void> _saveLocalMood(String mood, String note,
-      {bool synced = false}) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final moodData = {
-        'type': mood,
-        'note': note,
-        'timestamp': DateTime.now().toIso8601String(),
-        'synced': synced,
-      };
-      await prefs.setString('current_mood', json.encode(moodData));
-    } catch (e) {
-      print('Ошибка сохранения локального настроения: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>?> _getLocalMood() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final moodString = prefs.getString('current_mood');
-      if (moodString != null) {
-        final moodData = json.decode(moodString);
-        final timestamp = DateTime.parse(moodData['timestamp']);
-        final now = DateTime.now();
-        // Check if the mood is from today
-        if (timestamp.year == now.year &&
-            timestamp.month == now.month &&
-            timestamp.day == now.day) {
-          return moodData;
-        }
-      }
-    } catch (e) {
-      print('Ошибка получения локального настроения: $e');
-    }
-    return null;
-  }
-
-  void _initializeMoodStream() {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    DateTime now = DateTime.now();
-    DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
-    DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
-
-    _moodSubscription?.cancel();
-    _moodSubscription = FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.uid)
-        .collection("moods")
-        .where("timestamp",
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-        .snapshots()
-        .listen((snapshot) async {
-      if (snapshot.docs.isNotEmpty && mounted) {
-        final serverMood = snapshot.docs.first;
-        final serverData = serverMood.data() as Map<String, dynamic>;
-        final serverTimestamp = serverData['timestamp'] as Timestamp;
-
-        // Get local mood to compare timestamps
-        final localMood = await _getLocalMood();
-        final localTimestamp =
-            localMood != null ? DateTime.parse(localMood['timestamp']) : null;
-
-        // Only update if server mood is newer
-        if (localTimestamp == null ||
-            serverTimestamp.toDate().isAfter(localTimestamp)) {
-          await _saveLocalMood(
-            serverData['type'],
-            serverData['note'] ?? "",
-            synced: true,
-          );
-
-          if (mounted) {
-            setState(() {
-              currentMood = serverData['type'];
-              _isInitialized = true;
-            });
-          }
-        }
-      }
-    }, onError: (error) {
-      print('Error in mood stream: $error');
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-      }
-    });
-  }
-
-  Future<void> _loadLocalMood() async {
-    try {
-      final localMood = await _getLocalMood();
-      if (mounted) {
-        setState(() {
-          currentMood = localMood?['type'] ?? "Настроение не выбрано";
-        });
-      }
-    } catch (e) {
-      print('Ошибка загрузки локального настроения: $e');
-    }
-  }
-
-  Future<void> _syncOfflineMoods() async {
-    if (!isOnline) return;
-
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      final localMood = await _getLocalMood();
-      if (localMood == null || localMood['synced'] == true) return;
-
-      DateTime now = DateTime.now();
-      DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
-      DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
-
-      QuerySnapshot moodSnapshot = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("moods")
-          .where("timestamp",
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .get();
-
-      final localTimestamp = DateTime.parse(localMood['timestamp']);
-
-      if (moodSnapshot.docs.isNotEmpty) {
-        final serverMood = moodSnapshot.docs.first;
-        final serverTimestamp = (serverMood.data()
-            as Map<String, dynamic>)['timestamp'] as Timestamp;
-
-        // Only update if local mood is newer
-        if (localTimestamp.isAfter(serverTimestamp.toDate())) {
-          await FirebaseFirestore.instance
-              .collection("users")
-              .doc(user.uid)
-              .collection("moods")
-              .doc(serverMood.id)
-              .update({
-            "type": localMood['type'],
-            "note": localMood['note'],
-            "timestamp": Timestamp.fromDate(localTimestamp),
-          });
-        }
-      } else {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(user.uid)
-            .collection("moods")
-            .add({
-          "type": localMood['type'],
-          "note": localMood['note'],
-          "timestamp": Timestamp.fromDate(localTimestamp),
-        });
-      }
-
-      final updatedMoodData = {
-        ...localMood,
-        'synced': true,
-      };
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('current_mood', json.encode(updatedMoodData));
-
-      if (mounted) {
-        setState(() {
-          currentMood = localMood['type'];
-        });
-      }
-    } catch (e) {
-      print('Ошибка синхронизации: $e');
-    }
-  }
-
-  void _saveMood() async {
-    if (!mounted) return;
-
-    await _checkConnectivity();
-
-    // Если нет интернета и пытаемся определить настроение автоматически
-    if (selectedMood.isEmpty && note.isNotEmpty && !isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                "Для автоматического определения настроения требуется подключение к интернету. Пожалуйста, выберите настроение вручную.")),
-      );
-      return;
-    }
-
-    // Определяем настроение только если есть интернет
-    if (selectedMood.isEmpty && note.isNotEmpty && isOnline) {
-      try {
-        if (!mounted) return;
-
-        String? moodResult = await NaturalLanguageService.analyzeMood(note);
-        if (!mounted) return;
-
-        if (moodResult != null) {
-          selectedMood = moodResult;
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    "Ошибка анализа настроения. Пожалуйста, выберите настроение вручную.")),
-          );
-          return;
-        }
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  "Ошибка анализа настроения. Пожалуйста, выберите настроение вручную.")),
-        );
-        return;
-      }
-    }
-
-    if (selectedMood.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Выберите настроение перед сохранением!")),
-      );
-      return;
-    }
-
-    // Сохраняем локально
-    await _saveLocalMood(selectedMood, note);
-
-    // Обновляем историю настроений
-    moodHistoryKey.currentState?.loadOfflineMoods();
-
-    // Пробуем синхронизировать с сервером
-    if (isOnline) {
-      await _syncOfflineMoods();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Настроение сохранено и синхронизировано!")),
-      );
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                "Настроение сохранено локально и будет синхронизировано при появлении сети")),
-      );
-    }
-
-    if (!mounted) return;
-    setState(() {
-      currentMood = selectedMood;
-      selectedMood = "";
-      note = "";
-    });
-    _noteController.clear();
-  }
-
-  @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "Настроение",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Настроение',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
+          elevation: 0,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         ),
-        elevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      ),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent, // события проходят к потомкам
-        onTap: () => FocusScope.of(context).unfocus(), // снимаем фокус
-        child: RefreshIndicator(
-          onRefresh: () async {
-            _isInitialized = false;
-            await _initializeScreen();
-          },
+        body: RefreshIndicator(
+          onRefresh: () => context.read<MoodViewModel>().init(),
           child: SingleChildScrollView(
             physics: AlwaysScrollableScrollPhysics(),
             child: Padding(
@@ -378,24 +80,55 @@ class _MoodScreenState extends State<MoodScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
+                  Consumer<MoodViewModel>(builder: (_, vm, __) {
+                    if (vm.state == MoodState.loading) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    final moodText = vm.currentMood?.type.isNotEmpty == true
+                        ? vm.currentMood!.type
+                        : 'Настроение не выбрано';
+                    return Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          GradientMoodIcon(
+                            mood: vm.currentMood?.type ?? '',
+                            size: 40,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              moodText,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  SizedBox(height: 24),
+
+                  Selector<MoodViewModel, String>(
+                    selector: (_, vm) => vm.selectedType,
+                    builder: (_, selected, __) => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Текущее настроение",
+                          'Выберите ваше настроение',
                           style: TextStyle(
                             fontSize: 14,
                             color: Theme.of(context)
@@ -405,59 +138,20 @@ class _MoodScreenState extends State<MoodScreen>
                                 ?.withOpacity(0.7),
                           ),
                         ),
-                        SizedBox(height: 8),
-                        Row(
-                          children: [
-                            GradientMoodIcon(
-                              mood: currentMood,
-                              size: 40,
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                currentMood.isEmpty
-                                    ? "Настроение не выбрано"
-                                    : currentMood,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
+                        SizedBox(height: 12),
+                        MoodSelector(
+                          selectedMood: selected,
+                          onMoodSelected: context
+                              .read<MoodViewModel>()
+                              .selectMood,
                         ),
                       ],
                     ),
                   ),
                   SizedBox(height: 24),
+
                   Text(
-                    "Выберите ваше настроение",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withOpacity(0.7),
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  MoodSelector(
-                    selectedMood: selectedMood,
-                    onMoodSelected: (mood) {
-                      setState(() {
-                        if (selectedMood == mood) {
-                          selectedMood =
-                              ""; // Снимаем выбор, если нажали повторно
-                        } else {
-                          selectedMood = mood;
-                        }
-                      });
-                    },
-                  ),
-                  SizedBox(height: 24),
-                  Text(
-                    "Текстовая заметка",
+                    'Текстовая заметка',
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(context)
@@ -473,18 +167,20 @@ class _MoodScreenState extends State<MoodScreen>
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Theme.of(context).dividerColor.withOpacity(0.3),
+                        color: Theme.of(context)
+                            .dividerColor
+                            .withOpacity(0.3),
                       ),
                     ),
                     child: TextField(
                       controller: _noteController,
-                      maxLength: 512,
                       maxLines: 3,
-                      style: TextStyle(fontSize: 14),
+                      onChanged: context.read<MoodViewModel>().setNote,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(16),
                         border: InputBorder.none,
-                        hintText: "Опишите, что повлияло на ваше настроение...",
+                        hintText:
+                        'Опишите, что повлияло на ваше настроение...',
                         hintStyle: TextStyle(
                           color: Theme.of(context)
                               .textTheme
@@ -493,28 +189,85 @@ class _MoodScreenState extends State<MoodScreen>
                               ?.withOpacity(0.5),
                         ),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          note = value;
-                        });
-                      },
                     ),
                   ),
                   SizedBox(height: 24),
                   Center(
                     child: ElevatedButton(
-                      onPressed: _saveMood,
+                      onPressed: () async {
+                        final vm = context.read<MoodViewModel>();
+                        await vm.saveMood();
+                        _noteController.clear();
+                        if (vm.state == MoodState.error) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  Icon(Icons.error_outline, color: Colors.white),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      vm.errorMessage ?? 'Произошла ошибка',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                  ? Color(0xFFB71C1C)
+                                  : Colors.red.shade700,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              margin: EdgeInsets.all(8),
+                              duration: Duration(seconds: 4),
+                              action: SnackBarAction(
+                                label: 'OK',
+                                textColor: Colors.white,
+                                onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  Icon(Icons.check_circle_outline, color: Colors.white),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Настроение сохранено',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                  ? Color(0xFF1B5E20)
+                                  : Colors.green.shade700,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              margin: EdgeInsets.all(8),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          moodHistoryKey.currentState?.loadOfflineMoods();
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: Text(
-                        "Сохранить",
+                        'Сохранить',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -524,14 +277,14 @@ class _MoodScreenState extends State<MoodScreen>
                   ),
                   SizedBox(height: 32),
                   Text(
-                    "История настроений",
+                    'История настроений',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   SizedBox(height: 16),
-                  MoodHistory(key: moodHistoryKey, isOnline: isOnline),
+                  MoodHistory(key: moodHistoryKey, isOnline: true),
                 ],
               ),
             ),
