@@ -91,13 +91,32 @@ class TaskAnalyzer {
   }
 
   static int _convertSentimentToLoad(double score, double magnitude) {
-    if (score >= 0.5 && magnitude < 1.5) return 1;
-    if (score >= 0.2 && magnitude < 2.0) return 2;
-    if (-0.2 <= score && score < 0.2) return 3;
-    if (-0.5 <= score && score < -0.2 && magnitude >= 1.0) return 4;
-    return 5;
+    int load;
+
+    if (magnitude < 0.05) {
+      load = 1;
+    } else if (magnitude < 0.10) {
+      load = 2;
+    } else if (magnitude < 0.15) {
+      load = 3;
+    } else if (magnitude < 0.20) {
+      load = 4;
+    } else {
+      load = 5;
+    }
+
+    if (score >= 0.3 && load > 1) {
+      load--;
+    }
+    else if (score <= -0.3 && load < 5) {
+      load++;
+    }
+
+    return load;
   }
 
+
+  //TODO
   static void _handleError(dynamic error, Function(String) onError) {
     if (error is SocketException) {
       onError('Сервер недоступен. Проверьте подключение 🌐');
