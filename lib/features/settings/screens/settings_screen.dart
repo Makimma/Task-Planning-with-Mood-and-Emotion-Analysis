@@ -1,78 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../../../main.dart';
-import '../../../core/services/notification_service.dart';
 import '../../auth/screens/auth_screen.dart';
-import '../../auth/services/auth_service.dart';
 import '../../auth/viewmodels/auth_viewmodel.dart';
+import '../viewmodels/settings_viewmodel.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   @override
-  _SettingsScreenState createState() => _SettingsScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => SettingsViewModel(),
+      child: _SettingsScreenContent(),
+    );
+  }
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  late String _selectedTheme;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNotificationSetting();
-    _selectedTheme = _getCurrentThemeMode();
-  }
-
-  String _getCurrentThemeMode() {
-    final mode = MyApp.of(context).themeMode;
-    switch (mode) {
-      case ThemeMode.light:
-        return 'light';
-      case ThemeMode.dark:
-        return 'dark';
-      default:
-        return 'system';
-    }
-  }
-
-  Future<void> _changeTheme(String value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('theme_mode', value);
-    setState(() {
-      _selectedTheme = value;
-    });
-
-    final mode = {
-      'light': ThemeMode.light,
-      'dark': ThemeMode.dark,
-      'system': ThemeMode.system,
-    }[value]!;
-
-    MyApp.of(context).setThemeMode(mode);
-  }
-
-  Future<void> _loadNotificationSetting() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-    });
-  }
-
-  Future<void> _toggleNotifications(bool value) async {
-    // Immediately update UI for better responsiveness
-    setState(() {
-      _notificationsEnabled = value;
-    });
-    
-    // Save settings in background
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setBool('notifications_enabled', value);
-    });
-    
-    // Toggle notifications in background
-    NotificationService.toggleNotifications(value);
-  }
-
+class _SettingsScreenContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,75 +31,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Column(
-          children: [
-            _buildSettingsSection(
-              title: "Основные настройки",
+      body: Consumer<SettingsViewModel>(
+        builder: (context, viewModel, child) {
+          if (viewModel.isLoading) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (viewModel.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Error: ${viewModel.error}'),
+                  ElevatedButton(
+                    onPressed: () => viewModel.loadSettings(),
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
               children: [
-                _buildSettingsCard(
-                  icon: Icons.notifications,
-                  title: "Уведомления о задачах",
-                  subtitle: _notificationsEnabled
-                      ? "Включены"
-                      : "Отключены — уведомления не будут приходить",
-                  trailing: Switch(
-                    value: _notificationsEnabled,
-                    onChanged: _toggleNotifications,
-                    activeColor: Theme.of(context).colorScheme.primary,
-                  ),
+                _buildSettingsSection(
+                  context,
+                  title: "Основные настройки",
+                  children: [
+                    _buildSettingsCard(
+                      context,
+                      icon: Icons.notifications,
+                      title: "Уведомления о задачах",
+                      subtitle: viewModel.settings.notificationsEnabled
+                          ? "Включены"
+                          : "Отключены — уведомления не будут приходить",
+                      trailing: Switch(
+                        value: viewModel.settings.notificationsEnabled,
+                        onChanged: viewModel.updateNotifications,
+                        activeColor: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    _buildSettingsCard(
+                      context,
+                      icon: Icons.palette,
+                      title: "Тема приложения",
+                      subtitle: {
+                        'system': 'Системная',
+                        'light': 'Светлая',
+                        'dark': 'Тёмная',
+                      }[viewModel.settings.themeMode] ?? 'Системная',
+                      trailing: DropdownButton<String>(
+                        value: viewModel.settings.themeMode,
+                        underline: SizedBox(),
+                        items: [
+                          DropdownMenuItem(value: 'system', child: Text("Системная")),
+                          DropdownMenuItem(value: 'light', child: Text("Светлая")),
+                          DropdownMenuItem(value: 'dark', child: Text("Тёмная")),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            viewModel.updateThemeMode(value);
+                            final mode = {
+                              'light': ThemeMode.light,
+                              'dark': ThemeMode.dark,
+                              'system': ThemeMode.system,
+                            }[value]!;
+                            MyApp.of(context).setThemeMode(mode);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 12),
-                _buildSettingsCard(
-                  icon: Icons.palette,
-                  title: "Тема приложения",
-                  subtitle: {
-                    'system': 'Системная',
-                    'light': 'Светлая',
-                    'dark': 'Тёмная',
-                  }[_selectedTheme] ?? 'Системная',
-                  trailing: DropdownButton<String>(
-                    value: _selectedTheme,
-                    underline: SizedBox(),
-                    items: [
-                      DropdownMenuItem(value: 'system', child: Text("Системная")),
-                      DropdownMenuItem(value: 'light', child: Text("Светлая")),
-                      DropdownMenuItem(value: 'dark', child: Text("Тёмная")),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) _changeTheme(value);
-                    },
-                  ),
+                SizedBox(height: 20),
+                _buildSettingsSection(
+                  context,
+                  title: "Аккаунт",
+                  children: [
+                    _buildSettingsCard(
+                      context,
+                      icon: Icons.account_circle,
+                      title: "Выйти из аккаунта",
+                      subtitle: "Все данные будут сохранены",
+                      onTap: () async {
+                        final viewModel = context.read<AuthViewModel>();
+                        await viewModel.logout(context);
+                      },
+                      trailing: Icon(
+                        Icons.logout,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            SizedBox(height: 20),
-            _buildSettingsSection(
-              title: "Аккаунт",
-              children: [
-                _buildSettingsCard(
-                  icon: Icons.account_circle,
-                  title: "Выйти из аккаунта",
-                  subtitle: "Все данные будут сохранены",
-                  onTap: () async {
-                    final viewModel = context.read<AuthViewModel>();
-                    await viewModel.logout(context);
-                  },
-                  trailing: Icon(
-                    Icons.logout,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSettingsSection({
+  Widget _buildSettingsSection(
+    BuildContext context, {
     required String title,
     required List<Widget> children,
   }) {
@@ -179,7 +159,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingsCard({
+  Widget _buildSettingsCard(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,

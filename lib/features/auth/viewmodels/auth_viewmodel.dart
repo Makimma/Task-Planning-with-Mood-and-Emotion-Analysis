@@ -6,6 +6,7 @@ import '../../../../core/base/base_state.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../screens/auth_screen.dart';
+import '../../../core/services/notification_service.dart';
 import 'dart:io';
 
 class AuthViewModel extends BaseViewModel {
@@ -87,6 +88,9 @@ class AuthViewModel extends BaseViewModel {
         _userModel = result.data;
         _firebaseUser = FirebaseAuth.instance.currentUser;
         _state = SuccessState(_userModel);
+        
+        // Initialize notifications after successful login
+        await NotificationService.toggleNotifications(true);
       } else {
         String errorMessage = result.error ?? 'Неизвестная ошибка';
         if (result.error != null && result.error!.contains('firebase_auth')) {
@@ -138,6 +142,9 @@ class AuthViewModel extends BaseViewModel {
         _userModel = result.data;
         _firebaseUser = FirebaseAuth.instance.currentUser;
         _state = SuccessState(_userModel);
+        
+        // Initialize notifications after successful Google sign in
+        await NotificationService.toggleNotifications(true);
       } else {
         String errorMessage = result.error ?? 'Ошибка входа через Google';
         if (result.error != null && result.error!.contains('firebase_auth')) {
@@ -185,13 +192,12 @@ class AuthViewModel extends BaseViewModel {
     notify();
 
     try {
-      if (!await _checkInternetConnection()) {
-        _state = ErrorState('Отсутствует подключение к интернету');
-        setLoading(false);
-        notify();
-        return;
-      }
+      // Отключаем уведомления в любом случае
+      print('🔕 Отключение уведомлений при выходе из аккаунта...');
+      await NotificationService.toggleNotifications(false);
+      print('✅ Уведомления успешно отключены');
 
+      // Пытаемся выйти из аккаунта
       final result = await _authService.logout();
 
       if (result.isSuccess) {
@@ -216,10 +222,16 @@ class AuthViewModel extends BaseViewModel {
         }
       }
     } catch (e) {
-      if (e is FirebaseAuthException) {
-        _state = ErrorState(_getDetailedErrorMessage(e.code));
-      } else {
-        _state = ErrorState('Произошла ошибка при выходе');
+      // Даже если произошла ошибка при выходе, очищаем локальное состояние
+      _userModel = null;
+      _firebaseUser = null;
+      _state = InitialState();
+      
+      if (_context != null && _context!.mounted) {
+        Navigator.of(_context!).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => AuthScreen()),
+          (route) => false,
+        );
       }
     }
 
