@@ -10,6 +10,7 @@ import 'features/auth/screens/auth_screen.dart';
 import 'core/navigation/main_screen.dart';
 import 'core/di/service_locator.dart';
 import 'features/auth/viewmodels/auth_viewmodel.dart';
+import 'features/reports/viewmodels/report_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -125,6 +126,7 @@ class _MyAppState extends State<MyApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => sl<AuthViewModel>()),
+        ChangeNotifierProvider(create: (_) => sl<ReportViewModel>()),
       ],
       child: MaterialApp(
         // debugShowCheckedModeBanner: false,

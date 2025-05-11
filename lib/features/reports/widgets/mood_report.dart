@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import '../data/reports_data_provider.dart';
+import '../models/report_model.dart';
 import '../../moods/widgets/mood_chart.dart';
 import 'task_chart.dart';
 import 'productivity_chart.dart';
 
 class MoodReport extends StatelessWidget {
-  final ReportsDataProvider dataProvider;
+  final ReportModel? reportData;
   final String selectedPeriod;
   final bool isLoading;
 
   const MoodReport({
     Key? key,
-    required this.dataProvider,
+    required this.reportData,
     required this.selectedPeriod,
     required this.isLoading,
   }) : super(key: key);
@@ -20,6 +20,10 @@ class MoodReport extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isLoading) {
       return Center(child: CircularProgressIndicator());
+    }
+
+    if (reportData == null) {
+      return Center(child: Text('Нет данных'));
     }
 
     return SingleChildScrollView(
@@ -70,13 +74,13 @@ class MoodReport extends StatelessWidget {
               minHeight: 200,
               maxHeight: 300,
             ),
-            child: dataProvider.moodData.isEmpty
+            child: reportData!.moodData.isEmpty
                 ? _buildEmptyState(
                     context,
                     Icons.sentiment_neutral,
                     "Нет данных за этот период",
                   )
-                : MoodChart(moodData: dataProvider.moodData),
+                : MoodChart(moodData: reportData!.moodData),
           ),
         ],
       ),
@@ -114,15 +118,15 @@ class MoodReport extends StatelessWidget {
               minHeight: 500,
               maxHeight: 700,
             ),
-            child: dataProvider.categoryCounts.isEmpty && dataProvider.priorityCounts.isEmpty
+            child: reportData!.categoryCounts.isEmpty && reportData!.priorityCounts.isEmpty
                 ? _buildEmptyState(
                     context,
                     Icons.task_alt,
                     "Нет данных о задачах",
                   )
                 : TaskCharts(
-                    categoryCounts: dataProvider.categoryCounts,
-                    priorityCounts: dataProvider.priorityCounts,
+                    categoryCounts: reportData!.categoryCounts,
+                    priorityCounts: reportData!.priorityCounts,
                   ),
           ),
         ],
@@ -158,16 +162,16 @@ class MoodReport extends StatelessWidget {
           SizedBox(height: 12),
           SizedBox(
             height: 700,
-            child: dataProvider.moodProductivity.isEmpty
+            child: reportData!.moodProductivity.isEmpty
                 ? _buildEmptyState(
                     context,
                     Icons.analytics,
                     "Нет данных для анализа",
                   )
                 : ProductivityChart(
-                    moodProductivity: dataProvider.moodProductivity,
-                    productivityInsights: dataProvider.productivityInsights,
-                    getTaskWord: dataProvider.getTaskWord,
+                    moodProductivity: reportData!.moodProductivity,
+                    productivityInsights: reportData!.productivityInsights,
+                    getTaskWord: _getTaskWord,
                   ),
           ),
         ],
@@ -191,5 +195,11 @@ class MoodReport extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getTaskWord(double count) {
+    if (count == 1) return "задача";
+    if (count > 1 && count < 5) return "задачи";
+    return "задач";
   }
 } 

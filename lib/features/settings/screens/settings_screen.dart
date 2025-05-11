@@ -53,45 +53,45 @@ class _SettingsScreenContent extends StatelessWidget {
           }
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Column(
-              children: [
-                _buildSettingsSection(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Column(
+          children: [
+            _buildSettingsSection(
                   context,
-                  title: "Основные настройки",
-                  children: [
-                    _buildSettingsCard(
+              title: "Основные настройки",
+              children: [
+                _buildSettingsCard(
                       context,
-                      icon: Icons.notifications,
-                      title: "Уведомления о задачах",
+                  icon: Icons.notifications,
+                  title: "Уведомления о задачах",
                       subtitle: viewModel.settings.notificationsEnabled
-                          ? "Включены"
-                          : "Отключены — уведомления не будут приходить",
-                      trailing: Switch(
+                      ? "Включены"
+                      : "Отключены — уведомления не будут приходить",
+                  trailing: Switch(
                         value: viewModel.settings.notificationsEnabled,
                         onChanged: viewModel.updateNotifications,
-                        activeColor: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    SizedBox(height: 12),
-                    _buildSettingsCard(
+                    activeColor: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                SizedBox(height: 12),
+                _buildSettingsCard(
                       context,
-                      icon: Icons.palette,
-                      title: "Тема приложения",
-                      subtitle: {
-                        'system': 'Системная',
-                        'light': 'Светлая',
-                        'dark': 'Тёмная',
+                  icon: Icons.palette,
+                  title: "Тема приложения",
+                  subtitle: {
+                    'system': 'Системная',
+                    'light': 'Светлая',
+                    'dark': 'Тёмная',
                       }[viewModel.settings.themeMode] ?? 'Системная',
-                      trailing: DropdownButton<String>(
+                  trailing: DropdownButton<String>(
                         value: viewModel.settings.themeMode,
-                        underline: SizedBox(),
-                        items: [
-                          DropdownMenuItem(value: 'system', child: Text("Системная")),
-                          DropdownMenuItem(value: 'light', child: Text("Светлая")),
-                          DropdownMenuItem(value: 'dark', child: Text("Тёмная")),
-                        ],
-                        onChanged: (value) {
+                    underline: SizedBox(),
+                    items: [
+                      DropdownMenuItem(value: 'system', child: Text("Системная")),
+                      DropdownMenuItem(value: 'light', child: Text("Светлая")),
+                      DropdownMenuItem(value: 'dark', child: Text("Тёмная")),
+                    ],
+                    onChanged: (value) {
                           if (value != null) {
                             viewModel.updateThemeMode(value);
                             final mode = {
@@ -101,34 +101,34 @@ class _SettingsScreenContent extends StatelessWidget {
                             }[value]!;
                             MyApp.of(context).setThemeMode(mode);
                           }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20),
-                _buildSettingsSection(
-                  context,
-                  title: "Аккаунт",
-                  children: [
-                    _buildSettingsCard(
-                      context,
-                      icon: Icons.account_circle,
-                      title: "Выйти из аккаунта",
-                      subtitle: "Все данные будут сохранены",
-                      onTap: () async {
-                        final viewModel = context.read<AuthViewModel>();
-                        await viewModel.logout(context);
-                      },
-                      trailing: Icon(
-                        Icons.logout,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
+                    },
+                  ),
                 ),
               ],
             ),
+            SizedBox(height: 20),
+            _buildSettingsSection(
+                  context,
+              title: "Аккаунт",
+              children: [
+                _buildSettingsCard(
+                      context,
+                  icon: Icons.account_circle,
+                  title: "Выйти из аккаунта",
+                  subtitle: "Все данные будут сохранены",
+                  onTap: () async {
+                    final viewModel = context.read<AuthViewModel>();
+                    await viewModel.logout(context);
+                  },
+                  trailing: Icon(
+                    Icons.logout,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
           );
         },
       ),
