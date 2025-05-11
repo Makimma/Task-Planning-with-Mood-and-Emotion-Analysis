@@ -145,9 +145,6 @@ class MoodViewModel extends ChangeNotifier {
         currentMood = mood;
       }
 
-      selectedType = '';
-      note = '';
-
       state = MoodState.success;
       notifyListeners();
     } catch (e) {

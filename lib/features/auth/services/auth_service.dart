@@ -1,9 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
-
-import '../../../core/services/local_data_service.dart';
-import '../../../core/services/notification_service.dart';
 import '../../../../core/base/base_service.dart';
 import '../../../../core/utils/result.dart';
 import '../models/user_model.dart';

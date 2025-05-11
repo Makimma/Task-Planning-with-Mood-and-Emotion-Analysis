@@ -197,7 +197,6 @@ class __MoodScreenContentState extends State<_MoodScreenContent>
                       onPressed: () async {
                         final vm = context.read<MoodViewModel>();
                         await vm.saveMood();
-                        _noteController.clear();
                         if (vm.state == MoodState.error) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -231,6 +230,7 @@ class __MoodScreenContentState extends State<_MoodScreenContent>
                             ),
                           );
                         } else {
+                          _noteController.clear();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Row(
