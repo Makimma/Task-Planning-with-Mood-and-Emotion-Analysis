@@ -24,6 +24,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   int reminderOffsetMinutes = 0;
   String? categoryError;
   String? emotionalLoadError;
+  String? categorySuccess;
+  String? emotionalLoadSuccess;
   
   // Add FocusNodes
   final FocusNode _titleFocusNode = FocusNode();
@@ -136,10 +138,40 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                               style: TextStyle(color: Colors.red, fontSize: 12),
                             ),
                           ),
+                        if (categorySuccess != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Text(
+                              categorySuccess!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         SizedBox(height: 12),
                         _buildSectionTitle("Эмоциональная нагрузка"),
                         SizedBox(height: 4),
                         _buildEmotionalLoadSlider(setState),
+                        if (emotionalLoadError != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Text(
+                              emotionalLoadError!,
+                              style: TextStyle(color: Colors.red, fontSize: 12),
+                            ),
+                          ),
+                        if (emotionalLoadSuccess != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Text(
+                              emotionalLoadSuccess!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         SizedBox(height: 12),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
@@ -269,39 +301,35 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   Widget _buildCategorySelector(StateSetter setState) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 48,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isDarkMode 
-              ? Theme.of(context).dividerColor.withOpacity(0.3)
-              : Colors.grey[350]!,
+          color: Theme.of(context).dividerColor.withOpacity(0.3),
           width: 1.2,
         ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: TaskConstants.categories.contains(category) ? category : "Другое",
+          value: category,
           isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down),
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          borderRadius: BorderRadius.circular(8),
-          items: TaskConstants.categories.sublist(1).toSet().map((value) {
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          items: TaskConstants.categories.map((String value) {
             return DropdownMenuItem<String>(
               value: value,
-              child: Text(
-                value,
-                style: TextStyle(fontSize: 14),
-              ),
+              child: Text(value),
             );
           }).toList(),
-          onChanged: (value) => setState(() {
-            category = value!;
-            categoryError = null;
-          }),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                category = newValue;
+                categorySuccess = null;
+                categoryError = null;
+              });
+            }
+          },
         ),
       ),
     );
@@ -362,42 +390,34 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             divisions: 4,
             activeColor: Theme.of(context).colorScheme.primary,
             inactiveColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-            onChanged: (value) => setState(() {
-              emotionalLoad = value.toInt();
-              emotionalLoadError = null;
-            }),
+            onChanged: (value) {
+              setState(() {
+                emotionalLoad = value.toInt();
+                emotionalLoadSuccess = null;
+                emotionalLoadError = null;
+              });
+            },
           ),
         ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "1",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
-                ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "1",
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
               ),
-              Text(
-                "5",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (emotionalLoadError != null)
-          Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: Text(
-              emotionalLoadError!,
-              style: TextStyle(color: Colors.red, fontSize: 12),
             ),
-          ),
+            Text(
+              "5",
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -531,14 +551,19 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   void _analyzeCategory(StateSetter setState) {
+    setState(() {
+      categoryError = null;
+      categorySuccess = null;
+    });
+
     TaskAnalyzer.analyzeCategory(
       title: title,
       comment: comment,
       context: context,
-      onSuccess: (newCategory) {
+      onSuccess: (result) {
         setState(() {
-          category = newCategory;
-          categoryError = null;
+          category = result;
+          categorySuccess = "Категория определена: $result";
         });
       },
       onError: (error) {
@@ -550,14 +575,19 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   void _analyzeEmotionalLoad(StateSetter setState) {
+    setState(() {
+      emotionalLoadError = null;
+      emotionalLoadSuccess = null;
+    });
+
     TaskAnalyzer.analyzeEmotionalLoad(
       title: title,
       comment: comment,
       context: context,
-      onSuccess: (newLoad) {
+      onSuccess: (result) {
         setState(() {
-          emotionalLoad = newLoad;
-          emotionalLoadError = null;
+          emotionalLoad = result;
+          emotionalLoadSuccess = "Эмоциональная нагрузка определена: $result";
         });
       },
       onError: (error) {
