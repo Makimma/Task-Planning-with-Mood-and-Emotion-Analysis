@@ -239,7 +239,9 @@ class __MoodScreenContentState extends State<_MoodScreenContent>
                                   SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Настроение сохранено',
+                                      vm.wasMoodAutoDetected 
+                                          ? 'Настроение "${vm.selectedType}" определено из заметки и сохранено'
+                                          : 'Настроение сохранено',
                                       style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,

@@ -18,6 +18,7 @@ class MoodViewModel extends ChangeNotifier {
   String note = '';
   bool isOnline = true;
   bool _isInitialized = false;
+  bool _wasMoodAutoDetected = false;
 
   MoodViewModel({required SharedPreferences prefs})
       : _service = MoodService(prefs: prefs);
@@ -106,13 +107,17 @@ class MoodViewModel extends ChangeNotifier {
 
   Future<void> saveMood() async {
     state = MoodState.loading;
+    _wasMoodAutoDetected = false;
     notifyListeners();
 
     // Auto-detect mood from note if present
     if (selectedType.isEmpty && note.isNotEmpty) {
       try {
         String? result = await NaturalLanguageService.analyzeMood(note);
-        if (result != null && result.isNotEmpty) selectedType = result;
+        if (result != null && result.isNotEmpty) {
+          selectedType = result;
+          _wasMoodAutoDetected = true;
+        }
       } catch (_) {}
     }
 
@@ -153,4 +158,6 @@ class MoodViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool get wasMoodAutoDetected => _wasMoodAutoDetected;
 }
