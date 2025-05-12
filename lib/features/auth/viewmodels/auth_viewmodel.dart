@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/base/base_viewmodel.dart';
 import '../../../../core/base/base_state.dart';
 import '../models/user_model.dart';
@@ -192,10 +193,12 @@ class AuthViewModel extends BaseViewModel {
     notify();
 
     try {
-      // Отключаем уведомления в любом случае
-      print('🔕 Отключение уведомлений при выходе из аккаунта...');
+      // Отключаем уведомления
       await NotificationService.toggleNotifications(false);
-      print('✅ Уведомления успешно отключены');
+
+      // Очищаем все локальные данные
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
 
       // Пытаемся выйти из аккаунта
       final result = await _authService.logout();
@@ -222,7 +225,7 @@ class AuthViewModel extends BaseViewModel {
         }
       }
     } catch (e) {
-      // Даже если произошла ошибка при выходе, очищаем локальное состояние
+      // Очищаем локальное состояние
       _userModel = null;
       _firebaseUser = null;
       _state = InitialState();

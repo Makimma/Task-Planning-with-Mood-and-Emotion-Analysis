@@ -129,7 +129,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => sl<ReportViewModel>()),
       ],
       child: MaterialApp(
-        // debugShowCheckedModeBanner: false,
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
           brightness: Brightness.light,
           scaffoldBackgroundColor: Color(0xFFF5F5F7),
