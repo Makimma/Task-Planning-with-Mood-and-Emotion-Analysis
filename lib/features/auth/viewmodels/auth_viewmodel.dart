@@ -193,14 +193,17 @@ class AuthViewModel extends BaseViewModel {
     notify();
 
     try {
-      // Отключаем уведомления
       await NotificationService.toggleNotifications(false);
 
-      // Очищаем все локальные данные
       final prefs = await SharedPreferences.getInstance();
+      final themeMode = prefs.getString('theme_mode');
+
       await prefs.clear();
 
-      // Пытаемся выйти из аккаунта
+      if (themeMode != null) {
+        await prefs.setString('theme_mode', themeMode);
+      }
+
       final result = await _authService.logout();
 
       if (result.isSuccess) {
