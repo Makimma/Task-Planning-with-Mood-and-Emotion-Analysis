@@ -146,7 +146,9 @@ class MoodChart extends StatelessWidget {
       
       markers.add(
         Positioned(
-          left: (i / (moodData.length - 1)) * (300 - 40),
+          left: moodData.length == 1 
+              ? ((300 - 40) / 2) 
+              : (i / (moodData.length - 1)) * (300 - 40),
           top: yPosition - 8, // Центрируем маркер (-8 это половина размера маркера)
           child: GestureDetector(
             onTap: () {
@@ -252,7 +254,9 @@ class ChartGridPainter extends CustomPainter {
       if (i >= moodData.length) continue;
       
       // Расчет позиции
-      final x = (i / (moodData.length - 1)) * size.width;
+      final x = moodData.length == 1 
+          ? size.width / 2 
+          : (i / (moodData.length - 1)) * size.width;
       
       // Рисуем пунктирную вертикальную линию
       for (double y = 0; y < 160; y += 10.0) {
